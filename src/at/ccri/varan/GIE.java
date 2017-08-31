@@ -825,7 +825,7 @@ public class GIE {
 			    }
 			}
 
-			Map<File, File> extPathMapping = new HashMap<>();
+			Map<String, File> extPathMapping = new HashMap<>();
 			if (!mappingComplete) {
 			    JOptionPane.showMessageDialog(null,
 				    "<html><body>"
@@ -871,7 +871,7 @@ public class GIE {
      * @return
      * @throws IOException
      */
-    public static void rerootIgvSession(File oldSessF, File newSessF, Map<File, File> extPathMapping)
+    public static void rerootIgvSession(File oldSessF, File newSessF, Map<String, File> extPathMapping)
 	    throws IOException {
 	Document document = null;
 	FileInputStream is = null;
@@ -901,10 +901,10 @@ public class GIE {
 		    System.err.println("UPDATED RESOURCE HOME PATH " + resFile);
 		    resources.item(i).getAttributes().getNamedItem("path").setNodeValue(resFile.getAbsolutePath());
 		}
-		for (File exF : extPathMapping.keySet()) {
-		    if (resFile.getCanonicalPath().startsWith(exF.getCanonicalPath())) {
+		for (String exF : extPathMapping.keySet()) {
+		    if (resFile.getCanonicalPath().startsWith(exF)) {
 			// use startsWith() to handle "Id's" that were postfixed with "_"...
-			String postFix = resFile.getCanonicalPath().substring(exF.getCanonicalPath().length());
+			String postFix = resFile.getCanonicalPath().substring(exF.length());
 			resFile = new File(extPathMapping.get(exF).getAbsolutePath() + postFix);
 			resources.item(i).getAttributes().getNamedItem("path").setNodeValue(resFile.getAbsolutePath());
 			System.err.println("UPDATED EXT RESOURCE PATH " + resFile);
@@ -926,10 +926,10 @@ public class GIE {
 		    System.err.println("UPDATED TRACK HOME PATH " + resFile);
 		    changed = true;
 		}
-		for (File exF : extPathMapping.keySet()) {
-		    if (resFile.getCanonicalPath().startsWith(exF.getCanonicalPath())) {
+		for (String exF : extPathMapping.keySet()) {
+		    if (resFile.getCanonicalPath().startsWith(exF)) {
 			// use startsWith() to handle "Id's" that were postfixed with "_"...
-			String postFix = resFile.getCanonicalPath().substring(exF.getCanonicalPath().length());
+			String postFix = resFile.getCanonicalPath().substring(exF.length());
 			resFile = new File(extPathMapping.get(exF).getAbsolutePath() + postFix);
 			changed = true;
 		    }

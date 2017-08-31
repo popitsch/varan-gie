@@ -12,6 +12,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -49,7 +50,7 @@ public class GIEPathMapDialog extends JDialog {
     private static final long serialVersionUID = 1L;
 
     List<File> files;
-    Map<File, File> extPathMapping = new HashMap<>();
+    Map<String, File> extPathMapping = new HashMap<>();
     File lastDir;
     boolean wasCanceled = false;
 
@@ -60,8 +61,8 @@ public class GIEPathMapDialog extends JDialog {
      * @see https://stackoverflow.com/questions/17627431/auto-resizing-the-jtable-column-widths
      * @param table
      */
-    final int[] min_widths = new int[] { 50, 490, 60 };
-    final Integer[] max_widths = new Integer[] { 50, 490, 60 };
+    final int[] min_widths = new int[] { 50, 420, 60 };
+    final Integer[] max_widths = new Integer[] { 50, 420, 60 };
     /**
      * JTable
      */
@@ -73,16 +74,21 @@ public class GIEPathMapDialog extends JDialog {
 	init();
     }
 
-    public Map<File, File> getEditedPathMapping() {
+    public Map<String, File> getEditedPathMapping() {
 	return extPathMapping;
     }
 
     public File map(File f) {
-	if (extPathMapping.containsKey(f))
-	    return extPathMapping.get(f);
+	try {
+	    String cp = f.getCanonicalPath();
+	    if (extPathMapping.containsKey(cp))
+		return extPathMapping.get(cp);
+	} catch (IOException e) {
+	    e.printStackTrace();
+	}
 	return f;
     }
-    
+
     public boolean wasCanceled() {
 	return wasCanceled;
     }
@@ -93,26 +99,31 @@ public class GIEPathMapDialog extends JDialog {
      * @param model
      */
     private void reloadTable() {
-	DefaultTableModel model = (DefaultTableModel) table.getModel();
-	for (int i = model.getRowCount() - 1; i >= 0; i--) {
-	    model.removeRow(i);
+	try {
+	    DefaultTableModel model = (DefaultTableModel) table.getModel();
+	    for (int i = model.getRowCount() - 1; i >= 0; i--) {
+		model.removeRow(i);
+	    }
+	    for (File f : files) {
+		String name = f.getName();
+		String origPath = null;
+		origPath = f.getCanonicalPath();
+		File mapFile = extPathMapping.get(f.getCanonicalPath());
+		String mapPath = mapFile == null ? null : mapFile.getAbsolutePath();
+		List<String> entry = new ArrayList<String>();
+		entry.add(name);
+		entry.add(mapPath == null ? "" : mapPath);
+		entry.add("");
+		entry.add(origPath);
+		model.addRow(entry.toArray());
+	    }
+	    model.fireTableDataChanged();
+	    table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+	    resizeColumnWidth(table);
+	} catch (IOException e) {
+	    // TODO Auto-generated catch block
+	    e.printStackTrace();
 	}
-	for (File f : files) {
-	    String name = f.getName();
-	    String origPath = f.getAbsolutePath();
-	    File mapFile = extPathMapping.get(f);
-	    String mapPath = mapFile == null ? null : mapFile.getAbsolutePath();
-
-	    List<String> entry = new ArrayList<String>();
-	    entry.add(name);
-	    entry.add(mapPath == null ? "" : mapPath);
-	    entry.add("");
-	    entry.add(origPath);
-	    model.addRow(entry.toArray());
-	}
-	model.fireTableDataChanged();
-	table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-	resizeColumnWidth(table);
     }
 
     public void resizeColumnWidth(JTable table) {
@@ -209,11 +220,18 @@ public class GIEPathMapDialog extends JDialog {
 		if (col == COLIDX_LOCALPATH) {
 		    String remotePath = (String) getValueAt(row, COLIDX_REMOTEPATH);
 		    String mapPath = (String) newValue;
+		    System.out.println(remotePath + " => " + mapPath);
+
 		    if (mapPath != null) {
 			if (mapPath.equals(""))
 			    extPathMapping.remove(new File(remotePath));
 			else
-			    extPathMapping.put(new File(remotePath), new File(mapPath));
+			    try {
+				extPathMapping.put(new File(remotePath).getCanonicalPath(), new File(mapPath));
+			    } catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			    }
 			reloadTable();
 		    }
 		}
@@ -255,7 +273,7 @@ public class GIEPathMapDialog extends JDialog {
 		case COLIDX_NAME:
 		    return (String) table.getModel().getValueAt(row, COLIDX_REMOTEPATH);
 		default:
-		    String k = ( row>=0 && col >=0) ? (String) table.getModel().getValueAt(row, col) : "";
+		    String k = (row >= 0 && col >= 0) ? (String) table.getModel().getValueAt(row, col) : "";
 		    return k;
 		}
 	    }
@@ -279,7 +297,12 @@ public class GIEPathMapDialog extends JDialog {
 		    File fin = fDialog.getSelectedFile();
 		    int row = table.getSelectedRow();
 		    String remotePath = (String) table.getModel().getValueAt(row, COLIDX_REMOTEPATH);
-		    extPathMapping.put(new File(remotePath), fin);
+		    try {
+			extPathMapping.put(new File(remotePath).getCanonicalPath(), fin);
+		    } catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		    }
 		    lastDir = fin.getParentFile();
 		    reloadTable();
 		}
@@ -290,7 +313,7 @@ public class GIEPathMapDialog extends JDialog {
 
 	// hide the remote path column.
 	TableColumnModel tcm = table.getColumnModel();
-	tcm.removeColumn(tcm.getColumn(COLIDX_REMOTEPATH));
+	 tcm.removeColumn(tcm.getColumn(COLIDX_REMOTEPATH));
 	reloadTable();
 
 	// create table
@@ -332,7 +355,12 @@ public class GIEPathMapDialog extends JDialog {
 		for (File f : files) {
 		    File mapped = map(f);
 		    String newPath = mapped.getAbsolutePath().replaceAll("(?i)" + from, to);
-		    extPathMapping.put(f, new File(newPath));
+		    try {
+			extPathMapping.put(f.getCanonicalPath(), new File(newPath));
+		    } catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		    }
 		}
 		reloadTable();
 	    }
@@ -389,27 +417,27 @@ public class GIEPathMapDialog extends JDialog {
 	setVisible(true);
     }
 
-//    /**
-//     * Launch the application.
-//     */
-//    public static void main(String[] args) {
-//	try {
-//	    List<File> files = new ArrayList<>();
-//	    files.add(new File("X:/a.gif"));
-//	    files.add(new File("X:/b.gif"));
-//	    GIEPathMapDialog d = new GIEPathMapDialog(new Frame(), files);
-//	    WindowListener exitListener = new WindowAdapter() {
-//		@Override
-//		public void windowClosing(WindowEvent e) {
-//		    System.out.println("BYE");
-//		    System.exit(0);
-//		}
-//	    };
-//	    System.out.println("Done.");
-//	    System.exit(0);
-//	} catch (Exception e) {
-//	    e.printStackTrace();
-//	}
-//    }
+    // /**
+    // * Launch the application.
+    // */
+    // public static void main(String[] args) {
+    // try {
+    // List<File> files = new ArrayList<>();
+    // files.add(new File("X:/a.gif"));
+    // files.add(new File("X:/b.gif"));
+    // GIEPathMapDialog d = new GIEPathMapDialog(new Frame(), files);
+    // WindowListener exitListener = new WindowAdapter() {
+    // @Override
+    // public void windowClosing(WindowEvent e) {
+    // System.out.println("BYE");
+    // System.exit(0);
+    // }
+    // };
+    // System.out.println("Done.");
+    // System.exit(0);
+    // } catch (Exception e) {
+    // e.printStackTrace();
+    // }
+    // }
 
 }
