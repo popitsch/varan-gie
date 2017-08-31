@@ -49,8 +49,6 @@ import org.apache.log4j.Logger;
 import org.broad.igv.feature.RegionOfInterest;
 import org.broad.igv.feature.genome.GenomeManager;
 import org.broad.igv.lists.GeneList;
-import org.broad.igv.prefs.Constants;
-import org.broad.igv.prefs.PreferencesManager;
 import org.broad.igv.session.IGVSessionReader.SessionAttribute;
 import org.broad.igv.session.IGVSessionReader.SessionElement;
 import org.broad.igv.track.AbstractTrack;
@@ -165,7 +163,7 @@ public class SessionWriter {
 	    globalElement.setAttribute(SessionAttribute.HAS_SEQ_TRACK.getText(),
 		    "" + IGV.getInstance().hasSequenceTrack());
 
-	    globalElement.setAttribute("path", outputFile.getAbsolutePath());
+	    globalElement.setAttribute("path", outputFile.getCanonicalPath());
 
 	    // Resource Files
 	    writeResources(outputFile, globalElement, document);
@@ -329,8 +327,10 @@ public class SessionWriter {
 
 		    // REQUIRED ATTRIBUTES - Cannot be null
 
-		    boolean useRelative = PreferencesManager.getPreferences()
-			    .getAsBoolean(Constants.SESSION_RELATIVE_PATH);
+		    // boolean useRelative = PreferencesManager.getPreferences()
+		    // .getAsBoolean(Constants.SESSION_RELATIVE_PATH);
+		    // FIXME removed relative paths here as they will not be used in track id tags.
+		    boolean useRelative = false;
 
 		    String relativePath = useRelative
 			    ? FileUtils.getRelativePath(outputFile.getAbsolutePath(), resourceLocator.getPath())

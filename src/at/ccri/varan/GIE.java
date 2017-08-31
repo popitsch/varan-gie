@@ -898,24 +898,21 @@ public class GIE {
 			&& resFile.getParentFile().getCanonicalPath().equals(oldHomeDir.getCanonicalPath())) {
 		    resFile = newHomeDir == null ? new File(resFile.getName())
 			    : new File(newHomeDir, resFile.getName());
-		    System.err.println("UPDATED PATH " + resources.item(i).getAttributes().getNamedItem("path").getNodeValue()+" TO " + resFile);
+//		    System.err.println("UPDATED PATH " + resources.item(i).getAttributes().getNamedItem("path").getNodeValue()+" TO " + resFile);
 		    resources.item(i).getAttributes().getNamedItem("path").setNodeValue(resFile.getCanonicalPath());
 		}
-		System.out.println("Searching for " + resFile.getCanonicalPath() + " in " + extPathMapping.keySet());
+//		System.out.println("Searching for " + resFile.getCanonicalPath() + " in " + extPathMapping.keySet());
 		for (String exF : extPathMapping.keySet()) {
 		    if (resFile.getCanonicalPath().startsWith(exF)) {
 			// use startsWith() to handle "Id's" that were postfixed with "_"...
 			String postFix = resFile.getCanonicalPath().substring(exF.length());
 			resFile = new File(extPathMapping.get(exF).getCanonicalPath() + postFix);
-			    System.err.println("UPDATED PATH2 " + resources.item(i).getAttributes().getNamedItem("path").getNodeValue()+" TO " + resFile);
+//			    System.err.println("UPDATED PATH2 " + resources.item(i).getAttributes().getNamedItem("path").getNodeValue()+" TO " + resFile);
 			resources.item(i).getAttributes().getNamedItem("path").setNodeValue(resFile.getCanonicalPath());
 		    }
 		}
 
 	    }
-
-	    System.out.println("Track ids");
-	    
 	    // update track ids
 	    resources = document.getElementsByTagName("Track");
 	    for (int i = 0; i < resources.getLength(); i++) {
@@ -926,10 +923,10 @@ public class GIE {
 			&& resFile.getParentFile().getCanonicalPath().equals(oldHomeDir.getCanonicalPath())) {
 		    resFile = newHomeDir == null ? new File(resFile.getName())
 			    : new File(newHomeDir, resFile.getName());
-		    System.err.println("UPDATED TRACK HOME PATH " + resFile);
+//		    System.err.println("UPDATED TRACK HOME PATH " + resFile);
 		    changed = true;
 		}
-		System.out.println("Searching for " + resFile.getCanonicalPath() + " in " + extPathMapping.keySet());
+//		System.out.println("Searching for " + resFile.getCanonicalPath() + " in " + extPathMapping.keySet());
 		for (String exF : extPathMapping.keySet()) {
 		    if (resFile.getCanonicalPath().startsWith(exF)) {
 			// use startsWith() to handle "Id's" that were postfixed with "_"...
@@ -939,7 +936,7 @@ public class GIE {
 		    }
 		}
 		if (changed) {
-		    System.err.println("UPDATED ID " + resources.item(i).getAttributes().getNamedItem("id").getNodeValue()+" TO " + resFile);
+//		    System.err.println("UPDATED ID " + resources.item(i).getAttributes().getNamedItem("id").getNodeValue()+" TO " + resFile);
 		    resources.item(i).getAttributes().getNamedItem("id").setNodeValue(resFile.getCanonicalPath());
 		}
 	    }
