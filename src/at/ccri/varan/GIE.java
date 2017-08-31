@@ -35,6 +35,7 @@ import javax.swing.SwingUtilities;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.log4j.Logger;
 import org.broad.igv.DirectoryManager;
 import org.broad.igv.feature.RegionOfInterest;
@@ -171,7 +172,7 @@ public class GIE {
 	@Override
 	public File deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
 		throws JsonParseException {
-	    return new File(((JsonPrimitive) json).getAsString());
+	    return new File(FilenameUtils.separatorsToSystem(((JsonPrimitive) json).getAsString()));
 	}
 
 	@Override
