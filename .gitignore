@@ -1,0 +1,11 @@
+# Created by .gitignore support plugin (hsz.mobi)
+.idea/workspace.xml
+/bin/
+/batik-codec__V1.7.jar
+/goby-io-igv__V1.0.jar
+/igv.jar
+/dist/
+/IGV-dist/
+/IGV_user.zip
+/IGVDistribution_user.zip
+/igv_varan.jar

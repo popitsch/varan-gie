@@ -1,0 +1,340 @@
+package at.ccri.varan;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
+
+import javax.swing.JOptionPane;
+
+import org.broad.igv.feature.RegionOfInterest;
+import org.broad.igv.feature.genome.Genome;
+import org.broad.igv.feature.genome.GenomeManager;
+import org.broad.igv.ui.IGV;
+
+/**
+ * A particular GIE dataset version layer.
+ * 
+ * @author niko.popitsch
+ *
+ */
+public class GIEDatasetVersionLayer {
+
+    final static transient SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy");
+
+    /**
+     * The BED file storing the layer data
+     */
+    File dataFile;
+
+    /**
+     * The name of the layer
+     */
+    private transient String layerName;
+
+    /**
+     * The version this layer belongs to
+     */
+    private transient GIEDatasetVersion version;
+
+    /**
+     * The regions of this layer.
+     */
+    transient SortedSet<RegionOfInterest> regions = null;;
+
+    /**
+     * Name of annotation key/value pairs
+     */
+    public String[] annotations = new String[] {};
+
+    /**
+     * Size of data file.
+     */
+    long dataFileSize;
+
+    /**
+     * Last modification date
+     */
+    String lastModified = null;
+
+    /**
+     * Simple constructor.
+     */
+    public GIEDatasetVersionLayer() {
+    }
+
+    /**
+     * Constructor.
+     * 
+     * @param datasetName
+     * @param version
+     * @param layerName
+     * @param annotations
+     * @throws IOException
+     */
+    public GIEDatasetVersionLayer(GIEDatasetVersion version, String layerName, String[] annotations)
+	    throws IOException {
+	this.version = version;
+	this.layerName = layerName;
+	this.annotations = annotations;
+
+	this.dataFile = new File(GIE.GIE_DIRECTORY, URLEncoder.encode(
+		"gie." + version.getDataset().getName() + "." + version.getVersionName() + "." + layerName + ".bed",
+		"UTF-8"));
+	if (dataFile.exists())
+	    throw new IOException("CANNOT create version as dataFile or sessionFile already exists.");
+
+	if (dataFile.exists())
+	    dataFileSize = dataFile.length();
+	setLastModified(new Date());
+    }
+
+    /**
+     * (Re-) load data from data file.
+     * 
+     * @return
+     */
+    public SortedSet<RegionOfInterest> load() {
+	return loadFromFile(getDataFile());
+    }
+
+    /**
+     * Load data from the passed file.
+     * 
+     * @return
+     */
+    public SortedSet<RegionOfInterest> loadFromFile(File inFile) {
+	regions = new TreeSet<>();
+	if (inFile.exists())
+	    try {
+		FileInputStream fileInput = new FileInputStream(inFile);
+		BufferedReader reader = new BufferedReader(new InputStreamReader(fileInput));
+		String nextLine;
+		while ((nextLine = reader.readLine()) != null && (nextLine.trim().length() > 0)) {
+		    String[] t = nextLine.split("\t");
+		    if (t[0].startsWith("track") || t[0].startsWith("browser "))
+			continue;
+
+		    String name = t[3];
+		    if (name.equals("null"))
+			name = null;
+		    RegionOfInterest roi = new RegionOfInterest(t[0], Integer.parseInt(t[1]), Integer.parseInt(t[2]),
+			    name);
+		    roi.setScore(t[4]);
+		    roi.setStrand(t[5]);
+		    roi.setColor(t[8]);
+		    for (int i = 9; i < t.length; i++)
+			roi.addAnnotation(annotations[i - 9], URLDecoder.decode(t[i], "UTF-8"));
+		    regions.add(roi);
+		}
+		reader.close();
+	    } catch (IOException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	    }
+
+	// update igv regions data struct
+	IGV.getInstance().getSession().clearRegionsOfInterest();
+	IGV.getInstance().addROI(regions);
+
+	return regions;
+    }
+
+    public void addRegions(List<RegionOfInterest> reg) {
+	regions.addAll(reg);
+	IGV.getInstance().addROI(reg);
+    }
+
+    public void removeRegions(List<RegionOfInterest> reg) {
+	regions.removeAll(reg);
+	IGV.getInstance().removeRegionsOfInterest(reg);
+    }
+
+    /**
+     * Import data from external file and load into layer.
+     * 
+     * @return
+     * @throws IOException
+     */
+    public SortedSet<RegionOfInterest> importAndLoad(File importLayerFile) throws IOException {
+	// import layer data / copy and normalize file.
+
+	BufferedReader reader = null;
+	PrintWriter out = null;
+	try {
+	    out = new PrintWriter(dataFile);
+	    out.println("track name=\"" + getVersion().getDataset().getName() + "." + getVersion().getVersionName()
+		    + "." + layerName + "\" description=\"GIE data track\" visibility=1 useScore=1 itemRgb=\"On\"");
+	    if (importLayerFile != null) {
+		reader = new BufferedReader(new InputStreamReader(new FileInputStream(importLayerFile)));
+		String nextLine;
+		int c = 0;
+		Genome g = GenomeManager.getInstance().getCurrentGenome();
+		while ((nextLine = reader.readLine()) != null && (nextLine.trim().length() > 0)) {
+		    c++;
+		    String[] t = nextLine.split("\t");
+		    if (t[0].startsWith("track") || t[0].startsWith("browser "))
+			continue;
+		    if (t.length < 4)
+			throw new IOException("Wrong format. Not a BED file?");
+		    String chr = t[0];
+		    if (g != null)
+			chr = g.getCanonicalChrName(chr);
+		    String start = t[1];
+		    String end = t[2];
+		    String id = t.length >= 4 ? t[3] : c + "F";
+		    String score = t.length >= 5 ? t[4] : "0";
+		    String strand = t.length >= 6 ? t[5] : "+";
+		    String col = "128,128,128";
+		    out.println(chr + "\t" + start + "\t" + end + "\t" + id + "\t" + score + "\t" + strand + "\t"
+			    + start + "\t" + end + "\t" + col);
+		    
+		    if (c == 10000) {
+			int reply = JOptionPane.showConfirmDialog(null,
+				"File contains a large number of intervals (>10000). "
+					+ "It is not recommended to run GIE with such large interval sets. "
+					+ "Continue importing?",
+				"Confirmation Dialog", JOptionPane.YES_NO_OPTION);
+			if (reply != JOptionPane.YES_OPTION) {
+			    break;
+			}
+		    }
+		}
+	    }
+	} finally {
+	    if (out != null)
+		out.close();
+	    if (reader != null)
+		try {
+		    reader.close();
+		} catch (IOException e) {
+		    e.printStackTrace();
+		}
+	}
+	return load();
+    }
+
+    /**
+     * Save layer
+     * 
+     * @param rois
+     */
+    public void save() {
+	System.out.println("Saving current intervals to " + getDataFile());
+	if (regions == null)
+	    regions = new TreeSet<>();
+	regions.clear();
+	regions.addAll(IGV.getInstance().getSession().getAllRegionsOfInterest());
+	GIE.getInstance().export2bed(regions, getDataFile(),
+		getVersion().getDataset().getName() + "." + getVersion().getVersionName() + "." + layerName,
+		"GIE data track", false, false, false, true, annotations);
+	if (getDataFile().length() != dataFileSize)
+	    setLastModified(new Date());
+	setDataFileSize(getDataFile().length());
+    }
+
+    /**
+     * Delete the current layer.
+     * 
+     * @return
+     */
+    public boolean delete() {
+	boolean success = true;
+	if (dataFile != null)
+	    success = success & dataFile.delete();
+	System.out.println("DELETING " + dataFile + ":" + success);
+	return success;
+    }
+
+    public SortedSet<RegionOfInterest> getRegions() {
+	if (regions == null)
+	    load();
+	return regions;
+    }
+
+    public void setRegions(SortedSet<RegionOfInterest> regions) {
+	this.regions = regions;
+    }
+
+    public long getDataFileSize() {
+	return dataFileSize;
+    }
+
+    public void setDataFileSize(long dataFileSize) {
+	this.dataFileSize = dataFileSize;
+    }
+
+    public File getDataFile() {
+	return dataFile;
+    }
+
+    public void setDataFile(File dataFile) {
+	this.dataFile = dataFile;
+    }
+
+    public String getLayerName() {
+	if (this.layerName == null)
+	    this.layerName = GIE.getInstance().findDatasetVersionLayerName(this);
+	return layerName;
+    }
+
+    public void setLayerName(String layerName) {
+	this.layerName = layerName;
+    }
+
+    public GIEDatasetVersion getVersion() {
+	if (this.version == null)
+	    this.version = GIE.getInstance().findDatasetVersion(this);
+	return version;
+    }
+
+    public String[] getAnnotations() {
+	return annotations;
+    }
+
+    public void setAnnotations(String[] newAnno) {
+	this.annotations = newAnno;
+    }
+
+    public String getLastModified() {
+	return lastModified;
+    }
+
+    public void setLastModified(String lastModified) {
+	this.lastModified = lastModified;
+    }
+
+    public void setLastModified(Date date) {
+	this.lastModified = sdf.format(new Date());
+    }
+    
+    public List<File> getAllFiles() {
+	List<File> ret = new ArrayList<>();
+	ret.add(dataFile);
+	return ret;
+    }
+    
+    public void updateFilePaths(Map<File,File> fileMap) {
+	if ( fileMap.containsKey(dataFile))
+	    dataFile = fileMap.get(dataFile);
+    }
+    
+
+
+    @Override
+    public String toString() {
+	return "[l" + layerName + "@" + dataFile + "]";
+    }
+
+}

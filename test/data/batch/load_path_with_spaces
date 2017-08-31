@@ -1,0 +1,3 @@
+load "test/data/folder with spaces/test.wig"
+snapshot "/Users/jrobinso/tmppp/folder with spaces/test.svg"
+
