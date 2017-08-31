@@ -914,6 +914,8 @@ public class GIE {
 
 	    }
 
+	    System.out.println("Track ids");
+	    
 	    // update track ids
 	    resources = document.getElementsByTagName("Track");
 	    for (int i = 0; i < resources.getLength(); i++) {
@@ -927,6 +929,7 @@ public class GIE {
 		    System.err.println("UPDATED TRACK HOME PATH " + resFile);
 		    changed = true;
 		}
+		System.out.println("Searching for " + resFile.getCanonicalPath() + " in " + extPathMapping.keySet());
 		for (String exF : extPathMapping.keySet()) {
 		    if (resFile.getCanonicalPath().startsWith(exF)) {
 			// use startsWith() to handle "Id's" that were postfixed with "_"...
