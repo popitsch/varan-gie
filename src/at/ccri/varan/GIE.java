@@ -880,8 +880,9 @@ public class GIE {
 	    document = Utilities.createDOMDocumentFromXmlStream(is);
 	    NodeList resources = document.getElementsByTagName("Session");
 	    // get the old home directory
-	    File oldHomeDir = new File(resources.item(0).getAttributes().getNamedItem("path").getNodeValue())
-		    .getParentFile();
+	    File oldHomeDir = new File(FilenameUtils
+		    .separatorsToSystem(resources.item(0).getAttributes().getNamedItem("path").getNodeValue()))
+			    .getParentFile();
 	    File newHomeDir = newSessF.getParentFile();
 
 	    // set new igv_session path
@@ -890,7 +891,8 @@ public class GIE {
 	    // update all resource paths
 	    resources = document.getElementsByTagName("Resource");
 	    for (int i = 0; i < resources.getLength(); i++) {
-		File resFile = new File(resources.item(i).getAttributes().getNamedItem("path").getNodeValue());
+		File resFile = new File(FilenameUtils
+			.separatorsToSystem(resources.item(i).getAttributes().getNamedItem("path").getNodeValue()));
 		if (resFile.getParentFile() != null
 			&& resFile.getParentFile().getCanonicalPath().equals(oldHomeDir.getCanonicalPath())) {
 		    resFile = newHomeDir == null ? new File(resFile.getName())
@@ -913,7 +915,7 @@ public class GIE {
 	    // update track ids
 	    resources = document.getElementsByTagName("Track");
 	    for (int i = 0; i < resources.getLength(); i++) {
-		File resFile = new File(resources.item(i).getAttributes().getNamedItem("id").getNodeValue());
+		File resFile = new File(FilenameUtils.separatorsToSystem(resources.item(i).getAttributes().getNamedItem("id").getNodeValue()));
 		boolean changed = false;
 		if (resFile.getParentFile() != null
 			&& resFile.getParentFile().getCanonicalPath().equals(oldHomeDir.getCanonicalPath())) {
