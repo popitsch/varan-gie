@@ -39,6 +39,7 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumnModel;
 
+import org.apache.commons.io.FilenameUtils;
 import org.broad.igv.ui.IGV;
 
 import at.ccri.varan.GIE;

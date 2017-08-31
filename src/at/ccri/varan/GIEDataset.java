@@ -210,4 +210,10 @@ public class GIEDataset {
 	    v.updateFilePaths(fileMap);
     }
 
+    
+//    public static void main(String[] args) {
+//	String a = "\\\\biowaste\\data\\niko\\projects";
+//	System.out.println(a);
+//	System.out.println();
+//    }
 }

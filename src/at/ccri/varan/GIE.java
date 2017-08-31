@@ -778,14 +778,15 @@ public class GIE {
 				    .getNamedItem("genome").getNodeValue();
 
 			    // get the remote home directory
-			    File oldHomeDir = new File(document.getElementsByTagName("Session").item(0).getAttributes()
-				    .getNamedItem("path").getNodeValue()).getParentFile();
+			    File oldHomeDir = new File(
+				    FilenameUtils.separatorsToSystem(document.getElementsByTagName("Session").item(0)
+					    .getAttributes().getNamedItem("path").getNodeValue())).getParentFile();
 
 			    // get paths from Resource ids
 			    NodeList resources = document.getElementsByTagName("Resource");
 			    for (int i = 0; i < resources.getLength(); i++) {
-				File resFile = new File(
-					resources.item(i).getAttributes().getNamedItem("path").getNodeValue());
+				File resFile = new File(FilenameUtils.separatorsToSystem(
+					resources.item(i).getAttributes().getNamedItem("path").getNodeValue()));
 				if (resFile.getParentFile() == null)
 				    continue;
 				if (!resFile.isAbsolute())
@@ -915,7 +916,8 @@ public class GIE {
 	    // update track ids
 	    resources = document.getElementsByTagName("Track");
 	    for (int i = 0; i < resources.getLength(); i++) {
-		File resFile = new File(FilenameUtils.separatorsToSystem(resources.item(i).getAttributes().getNamedItem("id").getNodeValue()));
+		File resFile = new File(FilenameUtils
+			.separatorsToSystem(resources.item(i).getAttributes().getNamedItem("id").getNodeValue()));
 		boolean changed = false;
 		if (resFile.getParentFile() != null
 			&& resFile.getParentFile().getCanonicalPath().equals(oldHomeDir.getCanonicalPath())) {
