@@ -32,6 +32,7 @@ import java.util.zip.ZipOutputStream;
 
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
@@ -51,9 +52,9 @@ import org.broad.igv.util.LongRunningTask;
 import org.broad.igv.util.ResourceLocator;
 import org.broad.igv.util.UnzipGenomes;
 import org.broad.igv.util.Utilities;
-import org.broadinstitute.gatk.utils.jna.lsf.v7_0_6.LibBat.condHostInfoEnt;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -69,7 +70,6 @@ import com.google.gson.reflect.TypeToken;
 import at.ccri.varan.ui.CanonicalChromsomeComparator;
 import at.ccri.varan.ui.GIEDataDialog;
 import at.ccri.varan.ui.GIEMainDialog;
-import at.ccri.varan.ui.GIENewDatasetDialog;
 import at.ccri.varan.ui.GIEPathMapDialog;
 
 /**
@@ -717,8 +717,10 @@ public class GIE {
      * 
      * @param zipFile
      * @return
+     * @throws SAXException
+     * @throws ParserConfigurationException
      */
-    public boolean importDatasets(File zipFile) throws IOException {
+    public boolean importDatasets(File zipFile) throws IOException, ParserConfigurationException, SAXException {
 	File tempDir = null;
 	try {
 	    // create temp dir
@@ -759,7 +761,51 @@ public class GIE {
 
 		    if (origF.getAbsolutePath().endsWith("igvsession.xml")) {
 
-			List<File> externalPaths = extractExternalIgvSessionFiles(tempF);
+			/**
+			 * Extract genome id and file paths from igv session file
+			 * 
+			 */
+			Document document = null;
+			FileInputStream is = null;
+			List<File> externalPaths = new ArrayList<>();
+			try {
+			    is = new FileInputStream(tempF);
+			    document = Utilities.createDOMDocumentFromXmlStream(is);
+
+			    // get the remote genome id
+			    String remoteGenomeId = document.getElementsByTagName("Session").item(0).getAttributes()
+				    .getNamedItem("genome").getNodeValue();
+
+			    // get the remote home directory
+			    File oldHomeDir = new File(document.getElementsByTagName("Session").item(0).getAttributes()
+				    .getNamedItem("path").getNodeValue()).getParentFile();
+
+			    // get paths from Resource ids
+			    NodeList resources = document.getElementsByTagName("Resource");
+			    for (int i = 0; i < resources.getLength(); i++) {
+				File resFile = new File(
+					resources.item(i).getAttributes().getNamedItem("path").getNodeValue());
+				if (resFile.getParentFile() == null)
+				    continue;
+				if (!resFile.isAbsolute())
+				    continue;
+				if (resFile.getParentFile() == null)
+				    continue;
+				if (resFile.getParentFile().getCanonicalPath().equals(oldHomeDir.getCanonicalPath()))
+				    continue;
+				if (externalPaths.contains(resFile))
+				    continue;
+				externalPaths.add(resFile);
+			    }
+
+			} finally {
+			    try {
+				is.close();
+			    } catch (IOException e) {
+				e.printStackTrace();
+			    }
+			}
+
 			boolean mappingComplete = true;
 			if (externalPaths != null && externalPaths.size() > 0) {
 			    for (File oldFile : externalPaths) {
@@ -812,53 +858,6 @@ public class GIE {
 		tempDir.delete();
 	}
 	return true;
-    }
-
-    /**
-     * Retrieves all non-home-dir paths from a (not yet) re-rooted IGV session to enable the user to provide an input file path mapping.
-     * 
-     * @param sessionFile
-     * @param newSessF
-     * @return
-     */
-    public static List<File> extractExternalIgvSessionFiles(File sessionFile) {
-	Document document = null;
-	FileInputStream is = null;
-	List<File> ret = new ArrayList<>();
-	try {
-	    is = new FileInputStream(sessionFile);
-	    document = Utilities.createDOMDocumentFromXmlStream(is);
-	    // get the old home directory
-	    File oldHomeDir = new File(document.getElementsByTagName("Session").item(0).getAttributes()
-		    .getNamedItem("path").getNodeValue()).getParentFile();
-
-	    // get paths from Resource ids
-	    NodeList resources = document.getElementsByTagName("Resource");
-	    for (int i = 0; i < resources.getLength(); i++) {
-		File resFile = new File(resources.item(i).getAttributes().getNamedItem("path").getNodeValue());
-		if (resFile.getParentFile() == null)
-		    continue;
-		if (!resFile.isAbsolute())
-		    continue;
-		if (resFile.getParentFile().getCanonicalPath().equals(oldHomeDir.getCanonicalPath()))
-		    continue;
-		if (ret.contains(resFile))
-		    continue;
-		ret.add(resFile);
-	    }
-
-	} catch (Exception e) {
-	    log.error("Load session error", e);
-	    throw new RuntimeException(e);
-	} finally {
-	    try {
-		is.close();
-	    } catch (IOException e) {
-		e.printStackTrace();
-		return null;
-	    }
-	}
-	return ret;
     }
 
     /**
