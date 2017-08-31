@@ -317,7 +317,7 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 	// dataset description panel
 	JPanel descPanel = new JPanel();
 	descPanel.setLayout(new BorderLayout());
-	this.descr = new JTextArea(3, 60);
+	this.descr = new JTextArea(3, 50);
 	descr.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1, true),
 		"Description"));
 	descPanel.add(this.descr, BorderLayout.CENTER);

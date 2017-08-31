@@ -887,7 +887,7 @@ public class GIE {
 	    File newHomeDir = newSessF.getParentFile();
 
 	    // set new igv_session path
-	    resources.item(0).getAttributes().getNamedItem("path").setNodeValue(newSessF.getAbsolutePath());
+	    resources.item(0).getAttributes().getNamedItem("path").setNodeValue(newSessF.getCanonicalPath());
 
 	    // update all resource paths
 	    resources = document.getElementsByTagName("Resource");
@@ -898,16 +898,16 @@ public class GIE {
 			&& resFile.getParentFile().getCanonicalPath().equals(oldHomeDir.getCanonicalPath())) {
 		    resFile = newHomeDir == null ? new File(resFile.getName())
 			    : new File(newHomeDir, resFile.getName());
-		    System.err.println("UPDATED RESOURCE HOME PATH " + resFile);
-		    resources.item(i).getAttributes().getNamedItem("path").setNodeValue(resFile.getAbsolutePath());
+		    System.err.println("UPDATED PATH " + resources.item(i).getAttributes().getNamedItem("path").getNodeValue()+" TO " + resFile);
+		    resources.item(i).getAttributes().getNamedItem("path").setNodeValue(resFile.getCanonicalPath());
 		}
 		for (String exF : extPathMapping.keySet()) {
 		    if (resFile.getCanonicalPath().startsWith(exF)) {
 			// use startsWith() to handle "Id's" that were postfixed with "_"...
 			String postFix = resFile.getCanonicalPath().substring(exF.length());
-			resFile = new File(extPathMapping.get(exF).getAbsolutePath() + postFix);
-			resources.item(i).getAttributes().getNamedItem("path").setNodeValue(resFile.getAbsolutePath());
-			System.err.println("UPDATED EXT RESOURCE PATH " + resFile);
+			resFile = new File(extPathMapping.get(exF).getCanonicalPath() + postFix);
+			    System.err.println("UPDATED PATH2 " + resources.item(i).getAttributes().getNamedItem("path").getNodeValue()+" TO " + resFile);
+			resources.item(i).getAttributes().getNamedItem("path").setNodeValue(resFile.getCanonicalPath());
 		    }
 		}
 
@@ -930,13 +930,13 @@ public class GIE {
 		    if (resFile.getCanonicalPath().startsWith(exF)) {
 			// use startsWith() to handle "Id's" that were postfixed with "_"...
 			String postFix = resFile.getCanonicalPath().substring(exF.length());
-			resFile = new File(extPathMapping.get(exF).getAbsolutePath() + postFix);
+			resFile = new File(extPathMapping.get(exF).getCanonicalPath() + postFix);
 			changed = true;
 		    }
 		}
 		if (changed) {
-		    resources.item(i).getAttributes().getNamedItem("id").setNodeValue(resFile.getAbsolutePath());
-		    System.err.println("UPDATED TRACK EXT PATH " + resFile);
+		    System.err.println("UPDATED ID " + resources.item(i).getAttributes().getNamedItem("id").getNodeValue()+" TO " + resFile);
+		    resources.item(i).getAttributes().getNamedItem("id").setNodeValue(resFile.getCanonicalPath());
 		}
 	    }
 

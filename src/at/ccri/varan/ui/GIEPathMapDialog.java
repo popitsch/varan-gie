@@ -61,8 +61,8 @@ public class GIEPathMapDialog extends JDialog {
      * @see https://stackoverflow.com/questions/17627431/auto-resizing-the-jtable-column-widths
      * @param table
      */
-    final int[] min_widths = new int[] { 50, 420, 60 };
-    final Integer[] max_widths = new Integer[] { 50, 420, 60 };
+    final int[] min_widths = new int[] { 50, 410, 60 };
+    final Integer[] max_widths = new Integer[] { 50, 410, 60 };
     /**
      * JTable
      */
