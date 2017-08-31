@@ -103,8 +103,8 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
      * @see https://stackoverflow.com/questions/17627431/auto-resizing-the-jtable-column-widths
      * @param table
      */
-    final int[] min_widths = new int[] { 30, 220, 120, 50, 60, 5, 5 };
-    final Integer[] max_widths = new Integer[] { null, null, null, null, 60, 5, 5 };
+    final int[] min_widths = new int[] { 30, 220, 120, 50, 60, 10, 10 };
+    final Integer[] max_widths = new Integer[] { null, null, null, null, 60, 25, 25 };
 
     /**
      * JTable

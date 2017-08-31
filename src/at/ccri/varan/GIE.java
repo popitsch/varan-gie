@@ -789,8 +789,8 @@ public class GIE {
 					resources.item(i).getAttributes().getNamedItem("path").getNodeValue()));
 				if (resFile.getParentFile() == null)
 				    continue;
-				if (!resFile.isAbsolute())
-				    continue;
+//				if (!resFile.isAbsolute())
+//				    continue;
 				if (resFile.getParentFile() == null)
 				    continue;
 				if (resFile.getParentFile().getCanonicalPath().equals(oldHomeDir.getCanonicalPath()))

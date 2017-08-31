@@ -211,9 +211,10 @@ public class GIEDataset {
     }
 
     
-//    public static void main(String[] args) {
-//	String a = "\\\\biowaste\\data\\niko\\projects";
-//	System.out.println(a);
-//	System.out.println();
-//    }
+    public static void main(String[] args) {
+	String a = "\\\\biowaste\\data\\niko\\projects";
+	System.out.println(a);
+	System.out.println();
+	System.out.println(new File("../../a.gif").getParentFile());
+    }
 }
