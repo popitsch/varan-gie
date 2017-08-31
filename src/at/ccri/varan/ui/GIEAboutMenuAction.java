@@ -54,7 +54,7 @@ public class GIEAboutMenuAction extends MenuAction {
 
     IGV mainFrame;
     final static String GIE_ABOUT_URL = "http://science.ccri.at/";
-    final static String GIE_HELP_URL = "file://///biowaste/data/niko/workspace/gie/README.GIE.html";
+    final static String GIE_HELP_URL = "https://github.com/popitsch/varan-gie/blob/master/README.GIE.md";
 
     final String[] keys = new String[] {
 
