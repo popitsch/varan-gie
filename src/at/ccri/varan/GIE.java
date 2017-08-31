@@ -901,6 +901,7 @@ public class GIE {
 		    System.err.println("UPDATED PATH " + resources.item(i).getAttributes().getNamedItem("path").getNodeValue()+" TO " + resFile);
 		    resources.item(i).getAttributes().getNamedItem("path").setNodeValue(resFile.getCanonicalPath());
 		}
+		System.out.println("Searching for " + resFile.getCanonicalPath() + " in " + extPathMapping.keySet());
 		for (String exF : extPathMapping.keySet()) {
 		    if (resFile.getCanonicalPath().startsWith(exF)) {
 			// use startsWith() to handle "Id's" that were postfixed with "_"...
