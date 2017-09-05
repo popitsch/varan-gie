@@ -596,7 +596,8 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	});
 	Integer[] coords = GIE.getInstance().getWindowCoordinates().get("GIEDataDialog");
 	if (coords == null) {
-	    setPreferredSize(new Dimension(620, 500));
+	    setPreferredSize(new Dimension(640, 500));
+	    setMinimumSize(new Dimension(640, 300));
 	    setLocationRelativeTo(IGV.getMainFrame());
 	} else {
 	    // check compatibility with actual screen size

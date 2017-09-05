@@ -260,7 +260,7 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 	// ======== this ========
 	setTitle("VARAN-GIE :: Datasets");
 	setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-	setMinimumSize(new Dimension(620, 300));
+	setMinimumSize(new Dimension(640, 300));
 	// +++++++++++++++++++++++++++++++++++++++++++++++
 	// set location on screen
 	// +++++++++++++++++++++++++++++++++++++++++++++++
