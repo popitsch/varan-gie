@@ -199,7 +199,7 @@ public class GIEDatasetVersionLayer {
 		    String col = "128,128,128";
 		    out.println(chr + "\t" + start + "\t" + end + "\t" + id + "\t" + score + "\t" + strand + "\t"
 			    + start + "\t" + end + "\t" + col);
-		    
+
 		    if (c == 10000) {
 			int reply = JOptionPane.showConfirmDialog(null,
 				"File contains a large number of intervals (>10000). "
@@ -231,7 +231,7 @@ public class GIEDatasetVersionLayer {
      * @param rois
      */
     public void save() {
-	System.out.println("Saving current intervals to " + getDataFile());
+	// System.out.println("Saving current intervals to " + getDataFile());
 	if (regions == null)
 	    regions = new TreeSet<>();
 	regions.clear();
@@ -253,7 +253,7 @@ public class GIEDatasetVersionLayer {
 	boolean success = true;
 	if (dataFile != null)
 	    success = success & dataFile.delete();
-	System.out.println("DELETING " + dataFile + ":" + success);
+	// System.out.println("DELETING " + dataFile + ":" + success);
 	return success;
     }
 
@@ -318,19 +318,17 @@ public class GIEDatasetVersionLayer {
     public void setLastModified(Date date) {
 	this.lastModified = sdf.format(new Date());
     }
-    
+
     public List<File> getAllFiles() {
 	List<File> ret = new ArrayList<>();
 	ret.add(dataFile);
 	return ret;
     }
-    
-    public void updateFilePaths(Map<File,File> fileMap) {
-	if ( fileMap.containsKey(dataFile))
+
+    public void updateFilePaths(Map<File, File> fileMap) {
+	if (fileMap.containsKey(dataFile))
 	    dataFile = fileMap.get(dataFile);
     }
-    
-
 
     @Override
     public String toString() {

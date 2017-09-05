@@ -4,11 +4,11 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
 import org.broad.igv.ui.IGV;
 
 import at.ccri.varan.ui.UndoHandler;
@@ -20,6 +20,8 @@ import at.ccri.varan.ui.UndoHandler;
  *
  */
 public class GIEDatasetVersion {
+
+    private static Logger log = Logger.getLogger(GIEDatasetVersion.class);
 
     /**
      * Default name of main layer.
@@ -165,7 +167,7 @@ public class GIEDatasetVersion {
 
     public void setActiveLayer(String layerName) {
 	if (!layers.containsKey(layerName)) {
-	    System.err.println("Could not find layer " + layerName);
+	    log.error("Could not find layer " + layerName);
 	    return;
 	}
 
@@ -218,9 +220,9 @@ public class GIEDatasetVersion {
 	    this.versionName = GIE.getInstance().findDatasetVersionName(this);
 	return this.versionName;
     }
-    
+
     public void setVersionName(String versionName) {
-        this.versionName = versionName;
+	this.versionName = versionName;
     }
 
     /**
@@ -228,8 +230,8 @@ public class GIEDatasetVersion {
      * @return the dataset of this version.
      */
     public GIEDataset getDataset() {
-	if ( this.dataset == null ) {
-	    this.dataset = GIE.getInstance().findDataset(this);    
+	if (this.dataset == null) {
+	    this.dataset = GIE.getInstance().findDataset(this);
 	}
 	return dataset;
     }
@@ -242,7 +244,6 @@ public class GIEDatasetVersion {
 	// delete the associated IGV session
 	if (sessionFile != null)
 	    success = success & sessionFile.delete();
-	System.out.println("DELETING SESSION " + sessionFile + ":" + success);
 
 	UndoHandler.getInstance().clear(); // no undo before this point
 
@@ -260,8 +261,6 @@ public class GIEDatasetVersion {
     public Map<String, GIEDatasetVersionLayer> getLayers() {
 	return layers;
     }
-
-
 
     @Override
     public String toString() {
@@ -282,12 +281,11 @@ public class GIEDatasetVersion {
 	return ret;
     }
 
-    
-    public void updateFilePaths(Map<File,File> fileMap) {
-	if ( fileMap.containsKey(sessionFile))
+    public void updateFilePaths(Map<File, File> fileMap) {
+	if (fileMap.containsKey(sessionFile))
 	    sessionFile = fileMap.get(sessionFile);
 	for (GIEDatasetVersionLayer l : layers.values())
 	    l.updateFilePaths(fileMap);
     }
-    
+
 }

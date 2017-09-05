@@ -39,6 +39,8 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.log4j.Logger;
 import org.broad.igv.DirectoryManager;
 import org.broad.igv.feature.RegionOfInterest;
+import org.broad.igv.feature.genome.GenomeListItem;
+import org.broad.igv.feature.genome.GenomeManager;
 import org.broad.igv.track.Track;
 import org.broad.igv.ui.GlobalKeyDispatcher;
 import org.broad.igv.ui.IGV;
@@ -247,7 +249,7 @@ public class GIE {
 		    GIE.instance = gson.fromJson(reader, GIE.class);
 		} catch (Exception e) {
 		    e.printStackTrace();
-		    System.err.println("Error initializing GIE: " + e.getMessage());
+		    log.error("Error initializing GIE: " + e.getMessage());
 		}
 	    }
 	}
@@ -261,20 +263,20 @@ public class GIE {
 	try {
 	    // save current active dataset
 	    if (activeDataset != null) {
-		System.err.println("************************************");
-		System.err.println("**** GIE AUTOSAVE " + activeDataset + " *******");
-		System.err.println("************************************");
+		// System.err.println("************************************");
+		log.info("**** GIE AUTOSAVE " + activeDataset + " *******");
+		// System.err.println("************************************");
 
 		activeDataset.save();
 		// save IGV session
-		System.out.println("Save session to " + activeDataset.getCurrentVersion().getSessionFile() + " / "
-			+ IGV.getInstance().getAllTracks().size() + " > locus="
-			+ IGV.getInstance().getSession().getLocusString());
+		// log.info("Save session to " + activeDataset.getCurrentVersion().getSessionFile() + " / "
+		// + IGV.getInstance().getAllTracks().size() + " > locus="
+		// + IGV.getInstance().getSession().getLocusString());
 		if (activeDataset.getCurrentVersion().getSessionFile() != null) {
 		    SaveSessionMenuAction.saveSession(IGV.getInstance(),
 			    activeDataset.getCurrentVersion().getSessionFile());
 		} else
-		    System.out.println("Cannot store session");
+		    log.error("Could not save session");
 	    }
 
 	    // save config to string
@@ -291,7 +293,7 @@ public class GIE {
 
 	} catch (Exception e) {
 	    e.printStackTrace();
-	    System.err.println("Error saving active dataset: " + e.getMessage());
+	    log.error("Error saving active dataset: " + e.getMessage());
 	}
     }
 
@@ -473,7 +475,6 @@ public class GIE {
 				    loadedPaths.add(tpath);
 				}
 			    }
-			    System.out.println("Loaded paths " + loadedPaths);
 
 			    List<ResourceLocator> toLoad = new ArrayList<ResourceLocator>();
 			    Set<String> neededPaths = new HashSet<>();
@@ -501,16 +502,12 @@ public class GIE {
 				}
 			    }
 
-			    System.out.println("activeDatasetVersionTracks: " + activeDatasetVersionTracks);
-
 			    // load genomic regions
 			    activeDataset.getCurrentVersion().getActiveLayer().load();
 			    // update igv regions data struct
 			    IGV.getInstance().getSession().clearRegionsOfInterest();
 			    IGV.getInstance().addROI(activeDataset.getCurrentVersion().getActiveLayer().getRegions());
 			}
-
-			System.out.println("LOADED DATASET " + ds);
 
 			// show region navigator
 			if (GIEMainDialog.getInstance() != null) {
@@ -522,9 +519,9 @@ public class GIE {
 			if (GIEDataDialog.getInstance() != null) {
 			    GIEDataDialog.destroyInstance();
 			}
-			GIEDataDialog ddiag = GIEDataDialog.getInstance(IGV.getMainFrame());
+			GIEDataDialog.getInstance(IGV.getMainFrame());
 
-			System.out.println("ALL DONE " + ds);
+			log.info("Loaded dataset" + ds.getName());
 
 		    } finally {
 			if (progressDialog != null) {
@@ -534,7 +531,6 @@ public class GIE {
 			GIEDataDialog.blockReload = false;
 			if (GIEDataDialog.getInstance() != null)
 			    GIEDataDialog.getInstance().refresh();
-			System.out.println("Done.");
 		    }
 		}
 	    };
@@ -598,16 +594,13 @@ public class GIE {
 		return false;
 	    }
 
-	    System.out.print("Saving session...");
 	    save();
 	    IGV.getInstance().newSession();
 	    IGV.getInstance().clearRegionsOfInterest();
-	    System.out.println("Done Saving session...");
 
-	    System.out.print("adding dataset " + datasetName);
 	    activeDataset = new GIEDataset(datasetName, description, orig, annotations);
 	    datasets.put(datasetName, activeDataset);
-	    System.out.println("Done adding dataset " + datasetName);
+	    log.info("Added dataset " + datasetName);
 	    return true;
 	} catch (UnsupportedEncodingException e1) {
 	    e1.printStackTrace();
@@ -721,13 +714,13 @@ public class GIE {
      * @throws SAXException
      * @throws ParserConfigurationException
      */
+    @SuppressWarnings("unchecked")
     public boolean importDatasets(File zipFile) throws IOException, ParserConfigurationException, SAXException {
 	File tempDir = null;
 	try {
 	    // create temp dir
 	    tempDir = createTempDirectory();
 	    UnzipGenomes.unzip(zipFile, tempDir);
-	    System.out.println("UNZIPED TO " + tempDir);
 
 	    File jfile = new File(tempDir, DATASET_JSON_FN);
 
@@ -742,7 +735,7 @@ public class GIE {
 		    throw new IOException("Cannot import dataset " + k + " as dataset with same name already exists!");
 		}
 		GIEDataset ds = dsMap.get(k);
-		System.out.println("Importing dataset " + k + " / " + ds);
+		// System.out.println("Importing dataset " + k + " / " + ds);
 
 		// check whether we would overwrite existing files
 		for (File origF : ds.getAllFiles()) {
@@ -768,6 +761,7 @@ public class GIE {
 			 */
 			Document document = null;
 			FileInputStream is = null;
+
 			List<File> externalPaths = new ArrayList<>();
 			try {
 			    is = new FileInputStream(tempF);
@@ -776,6 +770,26 @@ public class GIE {
 			    // get the remote genome id
 			    String remoteGenomeId = document.getElementsByTagName("Session").item(0).getAttributes()
 				    .getNamedItem("genome").getNodeValue();
+			    String localgenomeId = remoteGenomeId;
+			    // get available genome ids
+			    Map<String, String> existingGenomeIds = new HashMap<>();
+			    for (GenomeListItem gi : GenomeManager.getInstance().getGenomeListItems())
+				existingGenomeIds.put(gi.getId(), gi.getDisplayableName());
+			    if (!existingGenomeIds.containsKey(remoteGenomeId)) {
+				String[] choices = existingGenomeIds.keySet()
+					.toArray(new String[existingGenomeIds.size()]);
+				// we have to map the genome id first
+				String choice = (String) JOptionPane.showInputDialog(null,
+					"<html><body>This dataset refers to a genome with id <b>'" + remoteGenomeId
+						+ "'</b> but no local genome with that ID was found.<br/>"
+						+ "Select the respective local genome or cancel and add genome first</body></html>"
+						+ "",
+					"Map genome id", JOptionPane.QUESTION_MESSAGE, null, choices, choices[1]); // Initial choice
+				if (choice == null)
+				    throw new IOException("Cannot import dataset as referenced genome " + remoteGenomeId
+					    + " was not found");
+				localgenomeId = choice;
+			    }
 
 			    // get the remote home directory
 			    File oldHomeDir = new File(
@@ -789,8 +803,8 @@ public class GIE {
 					resources.item(i).getAttributes().getNamedItem("path").getNodeValue()));
 				if (resFile.getParentFile() == null)
 				    continue;
-//				if (!resFile.isAbsolute())
-//				    continue;
+				// if (!resFile.isAbsolute())
+				// continue;
 				if (resFile.getParentFile() == null)
 				    continue;
 				if (resFile.getParentFile().getCanonicalPath().equals(oldHomeDir.getCanonicalPath()))
@@ -800,6 +814,40 @@ public class GIE {
 				externalPaths.add(resFile);
 			    }
 
+			    boolean mappingComplete = true;
+			    if (externalPaths != null && externalPaths.size() > 0) {
+				for (File oldFile : externalPaths) {
+				    if (!oldFile.exists()) {
+					mappingComplete = false;
+					// String newPath = JOptionPane.showInputDialog(IGV.getMainFrame(),
+					// "<html><body>The following file could not be located on your local system:<br/><b>"
+					// + oldFile.getAbsolutePath() + "</b><br/>"
+					// + "Please provide a new (valid) location for this file or cancel import:",
+					// oldFile.getAbsolutePath());
+					// if (newPath == null)
+					// return false;
+					// extPathMapping.put(oldFile, new File(newPath));
+				    }
+				}
+			    }
+
+			    Map<String, File> extPathMapping = new HashMap<>();
+			    if (!mappingComplete) {
+				JOptionPane.showMessageDialog(null,
+					"<html><body>"
+						+ "Some file links in the imported dataset are not valid/broken on your local system.<br/>"
+						+ "The following dialog enables you to 'fix' these links by providing valid file referrences.<br/>"
+						+ "If you want to replace a subpath string (e.g., replace 'c:/' with 'd:/'), you may use the <br/>"
+						+ "find/replace functionality.");
+				GIEPathMapDialog d = new GIEPathMapDialog(IGV.getMainFrame(), externalPaths);
+				if (d.wasCanceled()) {
+				    return false;
+				}
+				extPathMapping = d.getEditedPathMapping();
+			    }
+
+			    // copy + re-root the file
+			    rerootIgvSession(tempF, df, extPathMapping, localgenomeId);
 			} finally {
 			    try {
 				is.close();
@@ -808,51 +856,17 @@ public class GIE {
 			    }
 			}
 
-			boolean mappingComplete = true;
-			if (externalPaths != null && externalPaths.size() > 0) {
-			    for (File oldFile : externalPaths) {
-				if (!oldFile.exists()) {
-				    mappingComplete = false;
-				    // String newPath = JOptionPane.showInputDialog(IGV.getMainFrame(),
-				    // "<html><body>The following file could not be located on your local system:<br/><b>"
-				    // + oldFile.getAbsolutePath() + "</b><br/>"
-				    // + "Please provide a new (valid) location for this file or cancel import:",
-				    // oldFile.getAbsolutePath());
-				    // if (newPath == null)
-				    // return false;
-				    // extPathMapping.put(oldFile, new File(newPath));
-				}
-			    }
-			}
-
-			Map<String, File> extPathMapping = new HashMap<>();
-			if (!mappingComplete) {
-			    JOptionPane.showMessageDialog(null,
-				    "<html><body>"
-					    + "Some file links in the imported dataset are not valid/broken on your local system.<br/>"
-					    + "The following dialog enables you to 'fix' these links by providing valid file referrences.<br/>"
-					    + "If you want to replace a subpath string (e.g., replace 'c:/' with 'd:/'), you may use the <br/>"
-					    + "find/replace functionality.");
-			    GIEPathMapDialog d = new GIEPathMapDialog(IGV.getMainFrame(), externalPaths);
-			    if (d.wasCanceled()) {
-				return false;
-			    }
-			    extPathMapping = d.getEditedPathMapping();
-			}
-
-			// copy + re-root the file
-			rerootIgvSession(tempF, df, extPathMapping);
 		    } else {
 			// just copy the file
 			FileUtils.copyFile(tempF, df);
 		    }
 		    if (!df.exists())
-			System.err.println("WARNING: file " + df + " was not found.");
+			log.warn("WARNING: file " + df + " was not found.");
 		    pathMap.put(origF, df);
 		}
 		ds.updateFilePaths(pathMap);
 		datasets.put(k, dsMap.get(k));
-		System.out.println("Added " + datasets.get(k));
+		log.info("Added " + datasets.get(k));
 	    }
 
 	} finally {
@@ -871,8 +885,8 @@ public class GIE {
      * @return
      * @throws IOException
      */
-    public static void rerootIgvSession(File oldSessF, File newSessF, Map<String, File> extPathMapping)
-	    throws IOException {
+    public static void rerootIgvSession(File oldSessF, File newSessF, Map<String, File> extPathMapping,
+	    String localgenomeId) throws IOException {
 	Document document = null;
 	FileInputStream is = null;
 	PrintWriter out = null;
@@ -886,6 +900,9 @@ public class GIE {
 			    .getParentFile();
 	    File newHomeDir = newSessF.getParentFile();
 
+	    // set new genome id
+	    resources.item(0).getAttributes().getNamedItem("genome").setNodeValue(localgenomeId);
+
 	    // set new igv_session path
 	    resources.item(0).getAttributes().getNamedItem("path").setNodeValue(newSessF.getCanonicalPath());
 
@@ -898,16 +915,16 @@ public class GIE {
 			&& resFile.getParentFile().getCanonicalPath().equals(oldHomeDir.getCanonicalPath())) {
 		    resFile = newHomeDir == null ? new File(resFile.getName())
 			    : new File(newHomeDir, resFile.getName());
-//		    System.err.println("UPDATED PATH " + resources.item(i).getAttributes().getNamedItem("path").getNodeValue()+" TO " + resFile);
+		    // System.err.println("UPDATED PATH " + resources.item(i).getAttributes().getNamedItem("path").getNodeValue()+" TO " + resFile);
 		    resources.item(i).getAttributes().getNamedItem("path").setNodeValue(resFile.getCanonicalPath());
 		}
-//		System.out.println("Searching for " + resFile.getCanonicalPath() + " in " + extPathMapping.keySet());
+		// System.out.println("Searching for " + resFile.getCanonicalPath() + " in " + extPathMapping.keySet());
 		for (String exF : extPathMapping.keySet()) {
 		    if (resFile.getCanonicalPath().startsWith(exF)) {
 			// use startsWith() to handle "Id's" that were postfixed with "_"...
 			String postFix = resFile.getCanonicalPath().substring(exF.length());
 			resFile = new File(extPathMapping.get(exF).getCanonicalPath() + postFix);
-//			    System.err.println("UPDATED PATH2 " + resources.item(i).getAttributes().getNamedItem("path").getNodeValue()+" TO " + resFile);
+			// System.err.println("UPDATED PATH2 " + resources.item(i).getAttributes().getNamedItem("path").getNodeValue()+" TO " + resFile);
 			resources.item(i).getAttributes().getNamedItem("path").setNodeValue(resFile.getCanonicalPath());
 		    }
 		}
@@ -923,10 +940,10 @@ public class GIE {
 			&& resFile.getParentFile().getCanonicalPath().equals(oldHomeDir.getCanonicalPath())) {
 		    resFile = newHomeDir == null ? new File(resFile.getName())
 			    : new File(newHomeDir, resFile.getName());
-//		    System.err.println("UPDATED TRACK HOME PATH " + resFile);
+		    // System.err.println("UPDATED TRACK HOME PATH " + resFile);
 		    changed = true;
 		}
-//		System.out.println("Searching for " + resFile.getCanonicalPath() + " in " + extPathMapping.keySet());
+		// System.out.println("Searching for " + resFile.getCanonicalPath() + " in " + extPathMapping.keySet());
 		for (String exF : extPathMapping.keySet()) {
 		    if (resFile.getCanonicalPath().startsWith(exF)) {
 			// use startsWith() to handle "Id's" that were postfixed with "_"...
@@ -936,7 +953,7 @@ public class GIE {
 		    }
 		}
 		if (changed) {
-//		    System.err.println("UPDATED ID " + resources.item(i).getAttributes().getNamedItem("id").getNodeValue()+" TO " + resFile);
+		    // System.err.println("UPDATED ID " + resources.item(i).getAttributes().getNamedItem("id").getNodeValue()+" TO " + resFile);
 		    resources.item(i).getAttributes().getNamedItem("id").setNodeValue(resFile.getCanonicalPath());
 		}
 	    }

@@ -31,20 +31,26 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.SpringLayout;
-import javax.swing.UIManager;
 import javax.swing.WindowConstants;
 import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumnModel;
 
 import org.broad.igv.ui.IGV;
 
 import at.ccri.varan.GIE;
 
+/**
+ * VARAN-GIE path map dialog.
+ * 
+ * @author niko.popitsch
+ *
+ */
 public class GIEPathMapDialog extends JDialog {
+
+    // private static Logger log = Logger.getLogger(GIEPathMapDialog.class);
 
     private static final long serialVersionUID = 1L;
 
@@ -152,7 +158,7 @@ public class GIEPathMapDialog extends JDialog {
     private void saveCoords() {
 	Integer[] coords = getCoords();
 	if (coords != null)
-            GIE.getInstance().getWindowCoordinates().put("GIEPathMapDialog", getCoords());
+	    GIE.getInstance().getWindowCoordinates().put("GIEPathMapDialog", getCoords());
 
     }
 
@@ -215,8 +221,6 @@ public class GIEPathMapDialog extends JDialog {
 		if (col == COLIDX_LOCALPATH) {
 		    String remotePath = (String) getValueAt(row, COLIDX_REMOTEPATH);
 		    String mapPath = (String) newValue;
-		    System.out.println(remotePath + " => " + mapPath);
-
 		    if (mapPath != null) {
 			if (mapPath.equals(""))
 			    extPathMapping.remove(new File(remotePath));
@@ -236,8 +240,6 @@ public class GIEPathMapDialog extends JDialog {
 
 	// render the table
 	final class MyTableCellRenderer extends DefaultTableCellRenderer {
-
-	    Color BG = UIManager.getColor("Panel.background");
 
 	    /**
 	     * 
@@ -259,6 +261,11 @@ public class GIEPathMapDialog extends JDialog {
 	}
 	MyTableModel model = new MyTableModel(columnNames, 0);
 	table = new JTable(model) {
+	    /**
+	     * 
+	     */
+	    private static final long serialVersionUID = 1L;
+
 	    public String getToolTipText(MouseEvent e) {
 		JTable table = (JTable) e.getSource();
 		java.awt.Point p = e.getPoint();
@@ -288,18 +295,18 @@ public class GIEPathMapDialog extends JDialog {
 		JFileChooser fDialog = new JFileChooser();
 		fDialog.setDialogTitle("Map remote path: " + remotepath);
 		fDialog.setFileFilter(new FileFilter() {
-			@Override
-			public boolean accept(File f) {
-				if ( f.isDirectory() )
-					return true;
-				return ( f.getName().equals(ext) );
-			}
-			@Override
-                        public String getDescription() {
-                                return ext;
-                        }
+		    @Override
+		    public boolean accept(File f) {
+			if (f.isDirectory())
+			    return true;
+			return (f.getName().equals(ext));
+		    }
+
+		    @Override
+		    public String getDescription() {
+			return ext;
+		    }
 		});
-				
 
 		fDialog.setCurrentDirectory(lastDir);
 		// *!!*!*!*!*!*!*!
@@ -363,7 +370,8 @@ public class GIEPathMapDialog extends JDialog {
 		    return;
 		String to = JOptionPane.showInputDialog(null,
 			"<html><body>Enter target string that for the replacement (e.g., 'D:')<br/>"
-				+ "<em>Example remote path: " + examplepath + "</em></body></html>", from);
+				+ "<em>Example remote path: " + examplepath + "</em></body></html>",
+			from);
 		if (to == null)
 		    return;
 
@@ -402,7 +410,7 @@ public class GIEPathMapDialog extends JDialog {
 		if (reply == JOptionPane.YES_OPTION) {
 		    // GIEMainDialog.getInstance().refresh();
 		    wasCanceled = false;
-                    saveCoords();
+		    saveCoords();
 		    dispose();
 		}
 	    }
@@ -412,7 +420,7 @@ public class GIEPathMapDialog extends JDialog {
 	button2.addActionListener(new ActionListener() {
 	    @Override
 	    public void actionPerformed(ActionEvent e) {
-                saveCoords();
+		saveCoords();
 		dispose();
 	    }
 	});

@@ -73,10 +73,12 @@ import at.ccri.varan.GIE;
 /**
  * @author niko.popitsch
  * 
- *         GIE Export dialog
+ *         GIE edit annotations dialog
  * 
  */
 public class GIEEditAnnotationsDialog extends JDialog implements Observer, IGVEventObserver {
+
+    // private static Logger log = Logger.getLogger(GIEEditAnnotationsDialog.class);
 
     private static final long serialVersionUID = 1L;
 

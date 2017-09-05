@@ -33,7 +33,6 @@ import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Frame;
-import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
@@ -74,6 +73,8 @@ import at.ccri.varan.GIEAnnotationTrack;
 public class GIEAnnoDialog extends JDialog {
 
     private static final long serialVersionUID = 1L;
+
+    // private static Logger log = Logger.getLogger(GIEAnnoDialog.class);
 
     /**
      * Singleton instance
@@ -310,8 +311,6 @@ public class GIEAnnoDialog extends JDialog {
 
 	    public void actionPerformed(ActionEvent e) {
 		GIEAnnotationTrack t = getSelectedTrack(table.getSelectedRow());
-		System.out.println("LOAD " + t);
-
 		ResourceLocator locator = new ResourceLocator(t.getDataFile().toString());
 		List<ResourceLocator> l = new ArrayList<ResourceLocator>();
 		l.add(locator);

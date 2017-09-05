@@ -29,7 +29,6 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Frame;
-import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
@@ -58,7 +57,7 @@ import org.broad.igv.ui.IGV;
 import at.ccri.varan.GIE;
 
 /**
- * GIE "add annotation track" dialog.
+ * GIE statistics dialog.
  * 
  * @author niko.popitsch
  * 
@@ -66,6 +65,8 @@ import at.ccri.varan.GIE;
 public class GIEStatsDialog extends JDialog {
 
     private static final long serialVersionUID = 1L;
+
+    // private static Logger log = Logger.getLogger(GIEStatsDialog.class);
 
     public GIEStatsDialog(Frame owner) {
 	super(owner, "Statistics", true);

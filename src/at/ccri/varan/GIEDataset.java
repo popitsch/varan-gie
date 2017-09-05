@@ -7,7 +7,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 public class GIEDataset {
+
+    private static Logger log = Logger.getLogger(GIEDataset.class);
 
     /**
      * Default name of initial version.
@@ -138,7 +142,7 @@ public class GIEDataset {
 	    return true;
 	} catch (Exception e) {
 	    e.printStackTrace();
-	    System.err.println("Error adding new dataset version: " + e.getMessage());
+	    log.error("Error adding new dataset version: " + e.getMessage());
 	    return false;
 	}
     }
@@ -166,7 +170,7 @@ public class GIEDataset {
      */
     public boolean renameVersion(String oldKey, String newKey) {
 	if (versions.containsKey(newKey) || !versions.containsKey(oldKey)) {
-	    System.err.println("Cannot rename versions '" + oldKey + "' to '" + newKey + "'.");
+	    log.error("Cannot rename versions '" + oldKey + "' to '" + newKey + "'.");
 	    return false;
 	}
 	GIEDatasetVersion obj = versions.remove(oldKey);
@@ -183,7 +187,7 @@ public class GIEDataset {
      */
     public void save() {
 	if (currentVersion == null) {
-	    System.err.println("No current version - cannot save");
+	    log.error("No current version - cannot save");
 	} else
 	    currentVersion.save();
     }
@@ -204,17 +208,10 @@ public class GIEDataset {
 	    ret.addAll(v.getAllFiles());
 	return ret;
     }
-    
-    public void updateFilePaths(Map<File,File> fileMap) {
+
+    public void updateFilePaths(Map<File, File> fileMap) {
 	for (GIEDatasetVersion v : versions.values())
 	    v.updateFilePaths(fileMap);
     }
 
-    
-    public static void main(String[] args) {
-	String a = "\\\\biowaste\\data\\niko\\projects";
-	System.out.println(a);
-	System.out.println();
-	System.out.println(new File("../../a.gif").getParentFile());
-    }
 }

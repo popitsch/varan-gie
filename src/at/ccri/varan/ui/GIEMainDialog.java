@@ -72,6 +72,7 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumnModel;
 
+import org.apache.log4j.Logger;
 import org.broad.igv.event.IGVEventObserver;
 import org.broad.igv.feature.genome.GenomeManager;
 import org.broad.igv.ui.IGV;
@@ -87,6 +88,9 @@ import at.ccri.varan.GIEDatasetVersion;
  */
 public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver {
 
+    
+    private static Logger log = Logger.getLogger(GIEMainDialog.class);
+    
     private static final long serialVersionUID = 1L;
 
     public static final String FILTER_SHOW_ALL = "Show All";
@@ -347,7 +351,7 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 	final int COLIDX_Cat = 0;
 	final int COLIDX_Name = 1;
 	final int COLIDX_Ver = 2;
-	final int COLIDX_Date = 3;
+//	final int COLIDX_Date = 3;
 	final int COLIDX_Load = 4;
 	final int COLIDX_Del = 5;
 	final int COLIDX_Download = 6;
@@ -388,10 +392,10 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 			    repaint();
 			    revalidate();
 			} else {
-			    System.out.println("Cannot rename " + oldname + " to " + newname);
+			    log.error("Cannot rename " + oldname + " to " + newname);
 			}
 		    } catch (IOException e) {
-			System.out.println("Cannot rename " + oldname + " to " + newname);
+			log.error("Cannot rename " + oldname + " to " + newname);
 			e.printStackTrace();
 		    }
 		} else if (col == COLIDX_Ver) {
@@ -404,7 +408,7 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 			repaint();
 			revalidate();
 		    } else {
-			System.out.println("Cannot rename " + v + " to " + newname);
+			log.error("Cannot rename " + v + " to " + newname);
 		    }
 		} else if (col == COLIDX_Cat) {
 		    String k = (String) table.getModel().getValueAt(row, COLIDX_Name2);
@@ -438,8 +442,6 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 	// render the table
 	final class MyTableCellRenderer extends DefaultTableCellRenderer {
 
-	    Color BG = UIManager.getColor("Panel.background");
-
 	    /**
 	     * 
 	     */
@@ -470,6 +472,9 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 	}
 	MyTableModel model = new MyTableModel(columnNames, 0);
 	table = new JTable(model) {
+
+	    private static final long serialVersionUID = 1L;
+
 	    public String getToolTipText(MouseEvent e) {
 		JTable table = (JTable) e.getSource();
 		java.awt.Point p = e.getPoint();
@@ -587,7 +592,7 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 
 			}
 			if (reply == JOptionPane.YES_OPTION) {
-			    System.out.println("Save " + dsName + " to file: " + fout.getAbsolutePath());
+			    log.info("Saving " + dsName + " to file: " + fout.getAbsolutePath());
 			    GIE.getInstance().exportDataset(dsName, fout);
 			}
 
@@ -757,7 +762,7 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 	try {
 	    reloadTable();
 	} catch (Exception e) {
-	    System.err.println("Could not reload table");
+	    log.error("Could not reload table");
 	    e.printStackTrace();
 	}
 	if (isVisible()) {

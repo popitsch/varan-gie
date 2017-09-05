@@ -29,7 +29,6 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Frame;
-import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
@@ -61,6 +60,8 @@ import at.ccri.varan.GIEAnnotationTrack;
  * 
  */
 public class GIEAddAnnoDialog extends JDialog {
+
+    // private static Logger log = Logger.getLogger(GIEAddAnnoDialog.class);
 
     private static final long serialVersionUID = 1L;
 

@@ -84,6 +84,7 @@ import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 
+import org.apache.log4j.Logger;
 import org.broad.igv.Globals;
 import org.broad.igv.event.IGVEventObserver;
 import org.broad.igv.feature.RegionOfInterest;
@@ -106,6 +107,8 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 
     private static final long serialVersionUID = 1L;
 
+    private static Logger log = Logger.getLogger(GIEDataDialog.class);
+    
     /**
      * Singleton instance
      */
@@ -492,10 +495,12 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
     public void setUpComboColumn(JTable table, TableColumn col, String[] choices, String[] tooltips) {
 	// renderer
 	class ComboboxToolTipRenderer extends DefaultListCellRenderer {
+
+	    private static final long serialVersionUID = 1L;
 	    List<String> tooltips = new ArrayList<>();
 
 	    @Override
-	    public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected,
+	    public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
 		    boolean cellHasFocus) {
 
 		JComponent comp = (JComponent) super.getListCellRendererComponent(list, value, index, isSelected,
@@ -617,14 +622,11 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 		public void actionPerformed(ActionEvent e) {
 		    if (testActionListenerActive) {
 			String lname = getSelectedLayerName();
-			System.out.println("Select layer: " + lname);
-
 			String current = GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer()
 				.getLayerName();
 			if (current != lname)
 			    GIE.getInstance().getActiveDataset().getCurrentVersion().setActiveLayer(lname);
 			IGV.getInstance().repaintNamePanels();
-
 			refresh();
 		    }
 		}
@@ -697,10 +699,10 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 			try {
 			    if (!GIE.getInstance().getActiveDataset().getCurrentVersion().renameLayer(oldlname,
 				    lname)) {
-				System.err.println("Could nor rename layer " + oldlname);
+				log.error("Could not rename layer " + oldlname);
 			    }
 			} catch (IOException e1) {
-			    System.err.println("Could nor rename layer " + oldlname);
+			    log.error("Could not rename layer " + oldlname);
 			    e1.printStackTrace();
 			}
 			refresh();
@@ -723,7 +725,6 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 		columnWidths.add(50);
 	    }
 	}
-	System.out.println("COLNAMES" + columnNames);
 	min_widths = (Integer[]) columnWidths.toArray(new Integer[columnWidths.size()]);
 
 	final class MyTableModel extends DefaultTableModel {
@@ -741,7 +742,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	    public Object getValueAt(int row, int column) {
 		if (row >= dataVector.size())
 		    return null;
-		Vector rowVector = (Vector) dataVector.elementAt(row);
+		Vector<?> rowVector = (Vector<?>) dataVector.elementAt(row);
 		return rowVector.elementAt(column);
 	    }
 

@@ -29,7 +29,6 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Frame;
-import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
@@ -81,6 +80,8 @@ import at.ccri.varan.GIE;
  * 
  */
 public class GIENewDatasetDialog extends JDialog {
+
+    // private static Logger log = Logger.getLogger(GIENewDatasetDialog.class);
 
     private static final long serialVersionUID = 1L;
 
@@ -376,7 +377,7 @@ public class GIENewDatasetDialog extends JDialog {
 		}
 
 		GIE.getInstance().loadDataset(name, null); // will automatically select latest created version.
-		//GIEDataDialog ddiag = GIEDataDialog.getInstance(IGV.getMainFrame()); // show data table
+		// GIEDataDialog ddiag = GIEDataDialog.getInstance(IGV.getMainFrame()); // show data table
 		GIEMainDialog.getInstance().refresh();
 		saveCoords();
 		dispose();

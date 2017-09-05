@@ -58,6 +58,7 @@ import javax.swing.JTextArea;
 import javax.swing.SpringLayout;
 import javax.swing.WindowConstants;
 
+import org.apache.log4j.Logger;
 import org.broad.igv.event.IGVEventObserver;
 import org.broad.igv.feature.RegionOfInterest;
 import org.broad.igv.feature.genome.Genome;
@@ -76,6 +77,8 @@ public class GIEAddIntervalDialog extends JDialog implements Observer, IGVEventO
 
     private static final long serialVersionUID = 1L;
 
+    private static Logger log = Logger.getLogger(GIEAddIntervalDialog.class);
+    
     private static String lastText = "";
 
     public GIEAddIntervalDialog(Frame owner) {
@@ -273,7 +276,7 @@ public class GIEAddIntervalDialog extends JDialog implements Observer, IGVEventO
 			    }
 			}
 		    }
-		    System.out.println("Importing " + rois.size() + " intervals");
+		    log.info("Importing " + rois.size() + " intervals");
 		    IGV.getInstance().addROI(rois);
 		    JOptionPane.showMessageDialog(IGV.getMainFrame(), "Imported " + c + " intervals");
 		    dispose();

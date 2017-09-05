@@ -4,8 +4,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.broad.igv.feature.genome.Genome;
-
 /**
  * Compare chromosomes in a canonical fashion. Order is 1, 2, 3, ..., 22, M, X,
  * Y, <other-char-ordered>

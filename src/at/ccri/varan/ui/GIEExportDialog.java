@@ -30,7 +30,6 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Frame;
-import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
@@ -77,6 +76,8 @@ import at.ccri.varan.GIE;
  * 
  */
 public class GIEExportDialog extends JDialog implements Observer, IGVEventObserver {
+
+    // private static Logger log = Logger.getLogger(GIEExportDialog.class);
 
     private static final long serialVersionUID = 1L;
 
@@ -184,6 +185,7 @@ public class GIEExportDialog extends JDialog implements Observer, IGVEventObserv
 	ll.setSelectionInterval(0, listModel.getSize() - 1);
 	ll.setCellRenderer(new DefaultListCellRenderer() {
 	    private static final long serialVersionUID = 1L;
+
 	    @Override
 	    public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
 		    boolean cellHasFocus) {
@@ -258,12 +260,13 @@ public class GIEExportDialog extends JDialog implements Observer, IGVEventObserv
 		String type = (String) typeList.getSelectedItem();
 		boolean success = false;
 
-		if ( ll.getSelectedValuesList().size()== 0)
+		if (ll.getSelectedValuesList().size() == 0)
 		    return;
-		
+
 		SortedSet<RegionOfInterest> rois = new TreeSet<>();
-		for ( String lay : ll.getSelectedValuesList()) {
-		    rois.addAll(GIE.getInstance().getActiveDataset().getCurrentVersion().getLayers().get(lay).getRegions());
+		for (String lay : ll.getSelectedValuesList()) {
+		    rois.addAll(
+			    GIE.getInstance().getActiveDataset().getCurrentVersion().getLayers().get(lay).getRegions());
 		}
 		String[] annotations = GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer()
 			.getAnnotations();
@@ -283,7 +286,7 @@ public class GIEExportDialog extends JDialog implements Observer, IGVEventObserv
 		    }
 		    success = GIE.getInstance().export2bed(rois, new File(textField2.getText()), textField.getText(),
 			    textArea.getText(), ucscChrom.isSelected(), ucscBasic.isSelected(),
-			    
+
 			    ucscNoHeader.isSelected(), false, annotations);
 		} else if (type.equals("TSV")) {
 		    if (!textField2.getText().toLowerCase().endsWith(".tsv")) {
