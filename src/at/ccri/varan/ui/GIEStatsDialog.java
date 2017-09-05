@@ -95,7 +95,7 @@ public class GIEStatsDialog extends JDialog {
      * Initialize the dialog.
      */
     private void init() {
-	setTitle("Statistics");
+	setTitle("VARAN-GIE :: Statistics");
 	setMinimumSize(new Dimension(500, 250));
 	setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 	// +++++++++++++++++++++++++++++++++++++++++++++++

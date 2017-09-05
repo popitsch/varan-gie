@@ -574,7 +574,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
      */
     private void init() {
 	// ======== this ========
-	setTitle("ActiveDataset");
+	setTitle("VARAN-GIE :: Genomic Intervals");
 	setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 	Container contentPane = getContentPane();
 	getContentPane().setLayout(new BorderLayout());

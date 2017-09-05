@@ -10,7 +10,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -35,12 +34,12 @@ import javax.swing.SpringLayout;
 import javax.swing.UIManager;
 import javax.swing.WindowConstants;
 import javax.swing.border.EmptyBorder;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumnModel;
 
-import org.apache.commons.io.FilenameUtils;
 import org.broad.igv.ui.IGV;
 
 import at.ccri.varan.GIE;
@@ -166,7 +165,7 @@ public class GIEPathMapDialog extends JDialog {
      */
     private void init() {
 	// ======== this ========
-	setTitle("Create new Dataset");
+	setTitle("VARAN-GIE :: Map File Paths");
 	setMinimumSize(new Dimension(650, 350));
 	setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 	// +++++++++++++++++++++++++++++++++++++++++++++++
@@ -286,8 +285,14 @@ public class GIEPathMapDialog extends JDialog {
 	    private static final long serialVersionUID = 1L;
 
 	    public void actionPerformed(ActionEvent e) {
+		int row = table.getSelectedRow();
+		String remotepath = (String) table.getModel().getValueAt(row, COLIDX_REMOTEPATH);
+		String ext = new File(remotepath).getName();
+		
 		JFileChooser fDialog = new JFileChooser();
-		fDialog.setDialogTitle("Map file to...");
+		fDialog.setDialogTitle("Map remote path: " + remotepath);
+		fDialog.addChoosableFileFilter(new FileNameExtensionFilter(ext, ext));
+		fDialog.addChoosableFileFilter(new FileNameExtensionFilter("any", "*"));
 
 		fDialog.setCurrentDirectory(lastDir);
 		// *!!*!*!*!*!*!*!
@@ -295,7 +300,6 @@ public class GIEPathMapDialog extends JDialog {
 		int userSelection = fDialog.showSaveDialog(null);
 		if (userSelection == JFileChooser.APPROVE_OPTION) {
 		    File fin = fDialog.getSelectedFile();
-		    int row = table.getSelectedRow();
 		    String remotePath = (String) table.getModel().getValueAt(row, COLIDX_REMOTEPATH);
 		    try {
 			extPathMapping.put(new File(remotePath).getCanonicalPath(), fin);
@@ -342,8 +346,11 @@ public class GIEPathMapDialog extends JDialog {
 	    public void actionPerformed(ActionEvent e) {
 		// *!*!*!*!
 		// String from = JOptionPane.showInputDialog(IGV.getMainFrame(),
+		String examplepath = (String) table.getModel().getValueAt(1, COLIDX_REMOTEPATH);
 		String from = JOptionPane.showInputDialog(null,
-			"<html><body>Enter the source string that should be replaced (e.g., 'c:'). Note that this string will be treated case-insensitive (i.e., it will match e.g., c: and C:)</body></html>",
+			"<html><body>Enter the source string that should be replaced (e.g., 'c:'). <br/>"
+			+ "Note that this string will be treated case-insensitive (i.e., it will match e.g., c: and C:).<br/>"
+			+ "<em>Example remote path: "+examplepath+"</em></body></html>",
 			"");
 		if (from == null)
 		    return;

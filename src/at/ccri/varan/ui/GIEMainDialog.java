@@ -254,7 +254,7 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
      */
     private void init() {
 	// ======== this ========
-	setTitle("GenomicIntervalEditor");
+	setTitle("VARAN-GIE :: Datasets");
 	setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 	setMinimumSize(new Dimension(620, 300));
 	// +++++++++++++++++++++++++++++++++++++++++++++++

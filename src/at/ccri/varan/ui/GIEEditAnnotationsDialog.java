@@ -109,7 +109,7 @@ public class GIEEditAnnotationsDialog extends JDialog implements Observer, IGVEv
      */
     private void init() {
 	// ======== this ========
-	setTitle("Edit Annotations");
+	setTitle("VARAN-GIE :: Edit Custom Annotations");
 	setMinimumSize(new Dimension(550, 250));
 	setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 

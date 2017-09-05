@@ -107,7 +107,7 @@ public class GIEAddIntervalDialog extends JDialog implements Observer, IGVEventO
      */
     private void init() {
 	// ======== this ========
-	setTitle("Add Intervals");
+	setTitle("VARAN-GIE :: Add Genomic Intervals");
 	setMinimumSize(new Dimension(500, 350));
 	setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 

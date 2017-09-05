@@ -217,7 +217,7 @@ public class GIEAnnoDialog extends JDialog {
      */
     private void init() {
 	// ======== this ========
-	setTitle("Annotations");
+	setTitle("VARAN-GIE :: Manage Annotation Tracks");
 	setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 	Container contentPane = getContentPane();
 	getContentPane().setLayout(new BorderLayout());

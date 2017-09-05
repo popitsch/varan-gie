@@ -92,7 +92,7 @@ public class GIEAddAnnoDialog extends JDialog {
      * Initialize the dialog.
      */
     private void init() {
-	setTitle("Add Annotation Track");
+	setTitle("VARAN-GIE :: Add Annotation Track");
 	setMinimumSize(new Dimension(500, 250));
 	setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 	// +++++++++++++++++++++++++++++++++++++++++++++++

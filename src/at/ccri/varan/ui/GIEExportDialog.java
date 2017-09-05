@@ -109,7 +109,7 @@ public class GIEExportDialog extends JDialog implements Observer, IGVEventObserv
      */
     private void init() {
 	// ======== this ========
-	setTitle("Export data");
+	setTitle("VARAN-GIE :: Export Data");
 	setMinimumSize(new Dimension(550, 400));
 	setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 

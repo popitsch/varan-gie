@@ -115,7 +115,7 @@ public class GIENewDatasetDialog extends JDialog {
      */
     private void init() {
 	// ======== this ========
-	setTitle("Create new Dataset");
+	setTitle("VARAN-GIE :: Create New Dataset");
 	setMinimumSize(new Dimension(650, 350));
 	setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 	// +++++++++++++++++++++++++++++++++++++++++++++++
