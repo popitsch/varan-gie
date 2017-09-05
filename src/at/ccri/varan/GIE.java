@@ -779,12 +779,14 @@ public class GIE {
 				String[] choices = existingGenomeIds.keySet()
 					.toArray(new String[existingGenomeIds.size()]);
 				// we have to map the genome id first
-				String choice = (String) JOptionPane.showInputDialog(null,
-					"<html><body>This dataset refers to a genome with id <b>'" + remoteGenomeId
-						+ "'</b> but no local genome with that ID was found.<br/>"
-						+ "Select the respective local genome or cancel and add genome first</body></html>"
-						+ "",
-					"Map genome id", JOptionPane.QUESTION_MESSAGE, null, choices, choices[1]); // Initial choice
+				String choice = null;
+				if (choices.length > 0)
+				    choice = (String) JOptionPane.showInputDialog(null,
+					    "<html><body>This dataset refers to a genome with id <b>'" + remoteGenomeId
+						    + "'</b> but no local genome with that ID was found.<br/>"
+						    + "Select the respective local genome or cancel and add genome first</body></html>"
+						    + "",
+					    "Map genome id", JOptionPane.QUESTION_MESSAGE, null, choices, choices[0]); // Initial choice
 				if (choice == null)
 				    throw new IOException("Cannot import dataset as referenced genome " + remoteGenomeId
 					    + " was not found");
