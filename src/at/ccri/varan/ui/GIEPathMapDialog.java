@@ -34,7 +34,7 @@ import javax.swing.SpringLayout;
 import javax.swing.UIManager;
 import javax.swing.WindowConstants;
 import javax.swing.border.EmptyBorder;
-import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.filechooser.FileFilter;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
@@ -60,8 +60,8 @@ public class GIEPathMapDialog extends JDialog {
      * @see https://stackoverflow.com/questions/17627431/auto-resizing-the-jtable-column-widths
      * @param table
      */
-    final int[] min_widths = new int[] { 100, 400, 60 };
-    final Integer[] max_widths = new Integer[] { 500, 800, 60 };
+    final int[] min_widths = new int[] { 100, 390, 90 };
+    final Integer[] max_widths = new Integer[] { 500, 800, 100 };
     /**
      * JTable
      */
@@ -130,12 +130,6 @@ public class GIEPathMapDialog extends JDialog {
 	for (int column = 0; column < table.getColumnCount(); column++) {
 	    int minwidth = min_widths[column]; // Min width
 	    int maxwidth = (max_widths[column] != null) ? max_widths[column] : minwidth;
-	    for (int row = 0; row < table.getRowCount(); row++) {
-		TableCellRenderer renderer = table.getCellRenderer(row, column);
-		Component comp = table.prepareRenderer(renderer, row, column);
-		minwidth = Math.max(comp.getPreferredSize().width + 1, minwidth);
-		minwidth = Math.min(minwidth, maxwidth);
-	    }
 	    columnModel.getColumn(column).setPreferredWidth(minwidth);
 	    columnModel.getColumn(column).setMinWidth(minwidth);
 	    columnModel.getColumn(column).setMaxWidth(maxwidth);
@@ -157,8 +151,9 @@ public class GIEPathMapDialog extends JDialog {
      */
     private void saveCoords() {
 	Integer[] coords = getCoords();
-	// if (coords != null)
-	// GIE.getInstance().getWindowCoordinates().put("GIEPathMapDialog", getCoords());
+	if (coords != null)
+            GIE.getInstance().getWindowCoordinates().put("GIEPathMapDialog", getCoords());
+
     }
 
     /**
@@ -292,7 +287,19 @@ public class GIEPathMapDialog extends JDialog {
 
 		JFileChooser fDialog = new JFileChooser();
 		fDialog.setDialogTitle("Map remote path: " + remotepath);
-		fDialog.setFileFilter(new FileNameExtensionFilter(ext, ext));
+		fDialog.setFileFilter(new FileFilter() {
+			@Override
+			public boolean accept(File f) {
+				if ( f.isDirectory() )
+					return true;
+				return ( f.getName().equals(ext) );
+			}
+			@Override
+                        public String getDescription() {
+                                return ext;
+                        }
+		});
+				
 
 		fDialog.setCurrentDirectory(lastDir);
 		// *!!*!*!*!*!*!*!
@@ -351,11 +358,12 @@ public class GIEPathMapDialog extends JDialog {
 			"<html><body>Enter the source string that should be replaced (e.g., 'c:'). <br/>"
 				+ "Note that this string will be treated case-insensitive (i.e., it will match e.g., c: and C:).<br/>"
 				+ "<em>Example remote path: " + examplepath + "</em></body></html>",
-			"");
+			examplepath);
 		if (from == null)
 		    return;
 		String to = JOptionPane.showInputDialog(null,
-			"<html><body>Enter target string that for the replacement (e.g., 'D:')</body></html>", "");
+			"<html><body>Enter target string that for the replacement (e.g., 'D:')<br/>"
+				+ "<em>Example remote path: " + examplepath + "</em></body></html>", from);
 		if (to == null)
 		    return;
 
@@ -394,7 +402,7 @@ public class GIEPathMapDialog extends JDialog {
 		if (reply == JOptionPane.YES_OPTION) {
 		    // GIEMainDialog.getInstance().refresh();
 		    wasCanceled = false;
-		    saveCoords();
+                    saveCoords();
 		    dispose();
 		}
 	    }
@@ -404,7 +412,7 @@ public class GIEPathMapDialog extends JDialog {
 	button2.addActionListener(new ActionListener() {
 	    @Override
 	    public void actionPerformed(ActionEvent e) {
-		saveCoords();
+                saveCoords();
 		dispose();
 	    }
 	});
