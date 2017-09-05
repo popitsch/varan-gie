@@ -51,7 +51,7 @@ public class GIEPathMapDialog extends JDialog {
     List<File> files;
     Map<String, File> extPathMapping = new HashMap<>();
     File lastDir;
-    boolean wasCanceled = false;
+    boolean wasCanceled = true;
 
     public static Color COL_EXISTS = new Color(100, 191, 100);
     public static Color COL_NOT_EXISTS = new Color(191, 100, 100);
@@ -60,7 +60,7 @@ public class GIEPathMapDialog extends JDialog {
      * @see https://stackoverflow.com/questions/17627431/auto-resizing-the-jtable-column-widths
      * @param table
      */
-    final int[] min_widths = new int[] { 50, 410, 60 };
+    final int[] min_widths = new int[] { 50, 360, 60 };
     final Integer[] max_widths = new Integer[] { 50, 410, 60 };
     /**
      * JTable
@@ -291,8 +291,7 @@ public class GIEPathMapDialog extends JDialog {
 		
 		JFileChooser fDialog = new JFileChooser();
 		fDialog.setDialogTitle("Map remote path: " + remotepath);
-		fDialog.addChoosableFileFilter(new FileNameExtensionFilter(ext, ext));
-		fDialog.addChoosableFileFilter(new FileNameExtensionFilter("any", "*"));
+		fDialog.setFileFilter(new FileNameExtensionFilter(ext, ext));
 
 		fDialog.setCurrentDirectory(lastDir);
 		// *!!*!*!*!*!*!*!
@@ -346,7 +345,7 @@ public class GIEPathMapDialog extends JDialog {
 	    public void actionPerformed(ActionEvent e) {
 		// *!*!*!*!
 		// String from = JOptionPane.showInputDialog(IGV.getMainFrame(),
-		String examplepath = (String) table.getModel().getValueAt(1, COLIDX_REMOTEPATH);
+		String examplepath = (String) table.getModel().getValueAt(0, COLIDX_REMOTEPATH);
 		String from = JOptionPane.showInputDialog(null,
 			"<html><body>Enter the source string that should be replaced (e.g., 'c:'). <br/>"
 			+ "Note that this string will be treated case-insensitive (i.e., it will match e.g., c: and C:).<br/>"
@@ -393,6 +392,7 @@ public class GIEPathMapDialog extends JDialog {
 
 		if (reply == JOptionPane.YES_OPTION) {
 		    // GIEMainDialog.getInstance().refresh();
+		    wasCanceled = false;
 		    saveCoords();
 		    dispose();
 		}
@@ -403,7 +403,6 @@ public class GIEPathMapDialog extends JDialog {
 	button2.addActionListener(new ActionListener() {
 	    @Override
 	    public void actionPerformed(ActionEvent e) {
-		wasCanceled = true;
 		saveCoords();
 		dispose();
 	    }
