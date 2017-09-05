@@ -60,8 +60,8 @@ public class GIEPathMapDialog extends JDialog {
      * @see https://stackoverflow.com/questions/17627431/auto-resizing-the-jtable-column-widths
      * @param table
      */
-    final int[] min_widths = new int[] { 50, 360, 60 };
-    final Integer[] max_widths = new Integer[] { 50, 410, 60 };
+    final int[] min_widths = new int[] { 100, 400, 60 };
+    final Integer[] max_widths = new Integer[] { 500, 800, 60 };
     /**
      * JTable
      */
@@ -128,16 +128,17 @@ public class GIEPathMapDialog extends JDialog {
     public void resizeColumnWidth(JTable table) {
 	final TableColumnModel columnModel = table.getColumnModel();
 	for (int column = 0; column < table.getColumnCount(); column++) {
-	    int width = min_widths[column]; // Min width
+	    int minwidth = min_widths[column]; // Min width
+	    int maxwidth = (max_widths[column] != null) ? max_widths[column] : minwidth;
 	    for (int row = 0; row < table.getRowCount(); row++) {
 		TableCellRenderer renderer = table.getCellRenderer(row, column);
 		Component comp = table.prepareRenderer(renderer, row, column);
-		width = Math.max(comp.getPreferredSize().width + 1, width);
+		minwidth = Math.max(comp.getPreferredSize().width + 1, minwidth);
+		minwidth = Math.min(minwidth, maxwidth);
 	    }
-	    columnModel.getColumn(column).setPreferredWidth(width);
-	    columnModel.getColumn(column).setMinWidth(width);
-	    if (max_widths[column] != null)
-		columnModel.getColumn(column).setMaxWidth(max_widths[column]);
+	    columnModel.getColumn(column).setPreferredWidth(minwidth);
+	    columnModel.getColumn(column).setMinWidth(minwidth);
+	    columnModel.getColumn(column).setMaxWidth(maxwidth);
 	}
     }
 
@@ -288,7 +289,7 @@ public class GIEPathMapDialog extends JDialog {
 		int row = table.getSelectedRow();
 		String remotepath = (String) table.getModel().getValueAt(row, COLIDX_REMOTEPATH);
 		String ext = new File(remotepath).getName();
-		
+
 		JFileChooser fDialog = new JFileChooser();
 		fDialog.setDialogTitle("Map remote path: " + remotepath);
 		fDialog.setFileFilter(new FileNameExtensionFilter(ext, ext));
@@ -316,7 +317,7 @@ public class GIEPathMapDialog extends JDialog {
 
 	// hide the remote path column.
 	TableColumnModel tcm = table.getColumnModel();
-	 tcm.removeColumn(tcm.getColumn(COLIDX_REMOTEPATH));
+	tcm.removeColumn(tcm.getColumn(COLIDX_REMOTEPATH));
 	reloadTable();
 
 	// create table
@@ -348,8 +349,8 @@ public class GIEPathMapDialog extends JDialog {
 		String examplepath = (String) table.getModel().getValueAt(0, COLIDX_REMOTEPATH);
 		String from = JOptionPane.showInputDialog(null,
 			"<html><body>Enter the source string that should be replaced (e.g., 'c:'). <br/>"
-			+ "Note that this string will be treated case-insensitive (i.e., it will match e.g., c: and C:).<br/>"
-			+ "<em>Example remote path: "+examplepath+"</em></body></html>",
+				+ "Note that this string will be treated case-insensitive (i.e., it will match e.g., c: and C:).<br/>"
+				+ "<em>Example remote path: " + examplepath + "</em></body></html>",
 			"");
 		if (from == null)
 		    return;
