@@ -53,6 +53,8 @@ import org.broad.igv.util.ResourceLocator;
 import org.broad.igv.util.Utilities;
 import org.w3c.dom.Node;
 
+import at.ccri.varan.ui.TrackGrid;
+
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.annotation.*;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
@@ -170,6 +172,10 @@ public abstract class AbstractTrack implements Track {
     @XmlElement(name = "DataRange")
     protected DataRange dataRange;
 
+    @XmlElement(name = "TrackGrid")
+    protected TrackGrid trackGrid;
+
+    
     @SubtlyImportant
     protected AbstractTrack() {
     }
@@ -1072,4 +1078,16 @@ public abstract class AbstractTrack implements Track {
         return this.autoScale;
     }
     // End of Roche-Tessella modification
+    
+    
+    public TrackGrid getTrackGrid() {
+	return trackGrid;
+    }
+
+    public void setTrackGrid(TrackGrid trackGrid) {
+        this.trackGrid = trackGrid;
+    }
+
+    
+    
 }

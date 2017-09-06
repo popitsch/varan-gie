@@ -33,8 +33,23 @@
  */
 package org.broad.igv.track;
 
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.Rectangle;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlType;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+
 import org.apache.log4j.Logger;
 import org.broad.igv.Globals;
+import org.broad.igv.event.IGVEventBus;
+import org.broad.igv.event.IGVEventObserver;
 import org.broad.igv.feature.Chromosome;
 import org.broad.igv.feature.FeatureUtils;
 import org.broad.igv.feature.LocusScore;
@@ -50,18 +65,11 @@ import org.broad.igv.session.IGVSessionReader;
 import org.broad.igv.session.SessionXmlAdapters;
 import org.broad.igv.session.SubtlyImportant;
 import org.broad.igv.ui.IGV;
-import org.broad.igv.event.IGVEventBus;
-import org.broad.igv.event.IGVEventObserver;
 import org.broad.igv.ui.panel.FrameManager;
 import org.broad.igv.ui.panel.ReferenceFrame;
 import org.broad.igv.util.ResourceLocator;
 
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlType;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import java.awt.*;
-import java.util.*;
-import java.util.List;
+import at.ccri.varan.ui.TrackGrid;
 
 /**
  * Represents a track of numeric data
@@ -76,6 +84,7 @@ public abstract class DataTrack extends AbstractTrack implements ScalableTrack, 
     private DataRenderer renderer;
 
     private Map<String, LoadedDataInterval<List<LocusScore>>> loadedIntervalCache = new HashMap(200);
+    
 
     public DataTrack(ResourceLocator locator, String id, String name) {
         super(locator, id, name);
@@ -282,6 +291,9 @@ public abstract class DataTrack extends AbstractTrack implements ScalableTrack, 
         if ((getDataRange() != null) && (getRenderer() instanceof XYPlotRenderer)) {
             buf.append("Data scale: " + getDataRange().getMinimum() + " - " + getDataRange().getMaximum() + "<br>");
         }
+        if ((getTrackGrid() != null) && (getTrackGrid().getSpacing() > 0f) && (getRenderer() instanceof XYPlotRenderer)) {
+            buf.append("Grid spacing: " + getTrackGrid().getSpacing() + "<br>");
+        }
 
         buf.append(score.getValueString(position, mouseX, getWindowFunction()));
         return buf.toString();
@@ -445,5 +457,7 @@ public abstract class DataTrack extends AbstractTrack implements ScalableTrack, 
     private static DataTrack getNextTrack() {
         return (DataTrack) IGVSessionReader.getNextTrack();
     }
+    
+
 
 }

@@ -82,6 +82,7 @@ import org.broad.igv.renderer.HeatmapRenderer;
 import org.broad.igv.renderer.LineplotRenderer;
 import org.broad.igv.renderer.PointsRenderer;
 import org.broad.igv.renderer.RNAiBarChartRenderer;
+import org.broad.igv.renderer.XYPlotRenderer;
 import org.broad.igv.sam.AlignmentDataManager;
 import org.broad.igv.sam.AlignmentTrack;
 import org.broad.igv.sam.CoverageTrack;
@@ -112,7 +113,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import at.ccri.varan.GIE;
-import at.ccri.varan.ui.GIEDataDialog;
+import at.ccri.varan.ui.TrackGrid;
 import htsjdk.tribble.Feature;
 
 /**
@@ -368,6 +369,8 @@ public class TrackMenuUtils {
 	}
 
 	menu.add(getDataRangeItem(tracks));
+
+	menu.add(getTrackGridItem(tracks));
 
 	if (!hasCoverageTracks)
 	    menu.add(getHeatmapScaleItem(tracks));
@@ -879,6 +882,64 @@ public class TrackMenuUtils {
 			    track.setDataRange(axisDefinition);
 			    track.setAutoScale(false);
 			    track.removeAttribute(AttributeManager.GROUP_AUTOSCALE);
+			}
+			IGV.getInstance().repaint();
+		    }
+
+		}
+	    }
+	});
+
+	return item;
+    }
+
+    /**
+     * np: set track grid configuration
+     * 
+     * @param selectedTracks
+     * @return
+     */
+    public static JMenuItem getTrackGridItem(final Collection<Track> selectedTracks) {
+	JMenuItem item = new JMenuItem("Set Track Grid ...");
+
+	item.addActionListener(new ActionListener() {
+
+	    public void actionPerformed(ActionEvent evt) {
+		if (selectedTracks.size() > 0) {
+
+		    float maxSpacing = 0f;
+		    for (Track track : selectedTracks) {
+			if (track instanceof DataTrack) {
+			    DataTrack dt = (DataTrack) track;
+			    if (dt.getTrackGrid() != null)
+				maxSpacing = Math.max(maxSpacing, dt.getTrackGrid().getSpacing());
+			}
+		    }
+		    Object tmp = JOptionPane.showInputDialog(IGV.getMainFrame(),
+			    "<html><body>Track grid spacing (use 0 for none).<br/>"
+				    + "<em>Grid will not be drawn if there is less than "
+				    + XYPlotRenderer.MIN_PIX_GRID_SPACE
+				    + "px space between gridlines or if logscale was selected!</em></body></html>",
+			    "Track grid configuration.", JOptionPane.QUESTION_MESSAGE, null, null, maxSpacing + "");
+		    if (tmp != null) {
+			maxSpacing = Float.parseFloat((String) tmp);
+			for (Track track : selectedTracks) {
+			    if (track instanceof DataTrack) {
+				DataTrack dt = (DataTrack) track;
+				if (dt.getTrackGrid() == null)
+				    dt.setTrackGrid(new TrackGrid(maxSpacing));
+				else
+				    dt.getTrackGrid().setSpacing(maxSpacing);
+			    }
+			    if (track instanceof MergedTracks) {
+				MergedTracks mt = (MergedTracks) track;
+				for (DataTrack dt : mt.getMemberTracks()) {
+				    if (dt.getTrackGrid() == null)
+					dt.setTrackGrid(new TrackGrid(maxSpacing));
+				    else
+					dt.getTrackGrid().setSpacing(maxSpacing);
+				}
+			    }
 			}
 			IGV.getInstance().repaint();
 		    }
@@ -1567,7 +1628,7 @@ public class TrackMenuUtils {
 			newRoi.setScore((int) igvf.getScore() + "");
 		    newRoi.setStrand(igvf.getStrand());
 		}
-		IGV.getInstance().getSession().addROI(newRoi, false,  true);
+		IGV.getInstance().getSession().addROI(newRoi, false, true);
 	    }
 	});
 	return item;

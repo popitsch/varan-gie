@@ -38,6 +38,8 @@ import org.broad.igv.ui.panel.IGVPopupMenu;
 import org.broad.igv.ui.panel.MouseableRegion;
 import org.broad.igv.ui.panel.ReferenceFrame;
 import org.broad.igv.util.ResourceLocator;
+
+import at.ccri.varan.ui.TrackGrid;
 import htsjdk.tribble.Feature;
 
 import java.awt.*;
@@ -255,5 +257,11 @@ public interface Track extends Persistable{
     boolean getAutoScale();
 
     void setAutoScale(boolean autoScale);
+
+    /**
+     * Track grid configuration if any
+     * @return
+     */
+    TrackGrid getTrackGrid();
 
 }

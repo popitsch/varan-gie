@@ -23,12 +23,27 @@
  * THE SOFTWARE.
  */
 
-
 /*
 * To change this template, choose Tools | Templates
 * and open the template in the editor.
 */
 package org.broad.igv.renderer;
+
+import static org.broad.igv.prefs.Constants.CHART_COLOR_BORDERS;
+import static org.broad.igv.prefs.Constants.CHART_COLOR_TRACK_NAME;
+import static org.broad.igv.prefs.Constants.CHART_DRAW_BOTTOM_BORDER;
+import static org.broad.igv.prefs.Constants.CHART_DRAW_TOP_BORDER;
+import static org.broad.igv.prefs.Constants.CHART_DRAW_TRACK_NAME;
+import static org.broad.igv.prefs.Constants.CHART_DRAW_Y_AXIS;
+
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.Rectangle;
+import java.awt.RenderingHints;
+import java.awt.Stroke;
+import java.text.DecimalFormat;
+import java.util.List;
 
 //~--- non-JDK imports --------------------------------------------------------
 
@@ -39,25 +54,23 @@ import org.broad.igv.prefs.PreferencesManager;
 import org.broad.igv.track.RenderContext;
 import org.broad.igv.track.Track;
 import org.broad.igv.ui.FontManager;
-import org.broad.igv.ui.UIConstants;
 
-import java.awt.*;
-import java.text.DecimalFormat;
-import java.util.List;
-
-import static org.broad.igv.prefs.Constants.*;
+import at.ccri.varan.ui.TrackGrid;
 
 /**
  * @author jrobinso
  */
 public abstract class XYPlotRenderer extends DataRenderer {
 
+    public static final float MIN_PIX_GRID_SPACE = 5;
+
     private double marginFraction = 0.2;
 
+    private final Stroke STROKE_DASHED = new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0,
+	    new float[] { 3 }, 0);
 
-    protected void drawDataPoint(Color graphColor, int dx, int pX, int baseY, int pY,
-                                 RenderContext context) {
-        context.getGraphic2DForColor(graphColor).fillRect(pX, pY, dx, 2);
+    protected void drawDataPoint(Color graphColor, int dx, int pX, int baseY, int pY, RenderContext context) {
+	context.getGraphic2DForColor(graphColor).fillRect(pX, pY, dx, 2);
 
     }
 
@@ -69,86 +82,83 @@ public abstract class XYPlotRenderer extends DataRenderer {
      * @param context
      * @param arect
      */
-    public synchronized void renderScores(Track track, List<LocusScore> locusScores, RenderContext context, Rectangle arect) {
+    public synchronized void renderScores(Track track, List<LocusScore> locusScores, RenderContext context,
+	    Rectangle arect) {
 
+	Rectangle adjustedRect = calculateDrawingRect(arect);
+	double origin = context.getOrigin();
+	double locScale = context.getScale();
 
-        Rectangle adjustedRect = calculateDrawingRect(arect);
-        double origin = context.getOrigin();
-        double locScale = context.getScale();
+	Color posColor = track.getColor();
+	Color negColor = track.getAltColor();
 
-        Color posColor = track.getColor();
-        Color negColor = track.getAltColor();
+	// Get the Y axis definition, consisting of minimum, maximum, and base value. Often
+	// the base value is == min value which is == 0.
 
-        // Get the Y axis definition, consisting of minimum, maximum, and base value.  Often
-        // the base value is == min value which is == 0.
+	DataRange dataRange = track.getDataRange();
+	float maxValue = dataRange.getMaximum();
+	float baseValue = dataRange.getBaseline();
+	float minValue = dataRange.getMinimum();
+	boolean isLog = dataRange.isLog();
 
-        DataRange dataRange = track.getDataRange();
-        float maxValue = dataRange.getMaximum();
-        float baseValue = dataRange.getBaseline();
-        float minValue = dataRange.getMinimum();
-        boolean isLog = dataRange.isLog();
+	if (isLog) {
+	    minValue = (float) (minValue == 0 ? 0 : Math.log10(minValue));
+	    maxValue = (float) Math.log10(maxValue);
+	}
 
-        if (isLog) {
-            minValue = (float) (minValue == 0 ? 0 : Math.log10(minValue));
-            maxValue = (float) Math.log10(maxValue);
-        }
+	// Calculate the Y scale factor.
 
+	double delta = (maxValue - minValue);
+	double yScaleFactor = adjustedRect.getHeight() / delta;
 
-        // Calculate the Y scale factor.
+	// Calculate the Y position in pixels of the base value. Clip to bounds of rectangle
+	double baseDelta = maxValue - baseValue;
+	int baseY = (int) (adjustedRect.getY() + baseDelta * yScaleFactor);
+	if (baseY < adjustedRect.y) {
+	    baseY = adjustedRect.y;
+	} else if (baseY > adjustedRect.y + adjustedRect.height) {
+	    baseY = adjustedRect.y + adjustedRect.height;
+	}
 
-        double delta = (maxValue - minValue);
-        double yScaleFactor = adjustedRect.getHeight() / delta;
+	int lastPx = 0;
+	for (LocusScore score : locusScores) {
 
-        // Calculate the Y position in pixels of the base value.  Clip to bounds of rectangle
-        double baseDelta = maxValue - baseValue;
-        int baseY = (int) (adjustedRect.getY() + baseDelta * yScaleFactor);
-        if (baseY < adjustedRect.y) {
-            baseY = adjustedRect.y;
-        } else if (baseY > adjustedRect.y + adjustedRect.height) {
-            baseY = adjustedRect.y + adjustedRect.height;
-        }
+	    // Note -- don't cast these to an int until the range is checked.
+	    // could get an overflow.
+	    double pX = ((score.getStart() - origin) / locScale);
+	    double dx = Math.ceil((Math.max(1, score.getEnd() - score.getStart())) / locScale) + 1;
+	    if ((pX + dx < 0)) {
+		continue;
+	    } else if (pX > adjustedRect.getMaxX()) {
+		break;
+	    }
 
-        int lastPx = 0;
-        for (LocusScore score : locusScores) {
+	    float dataY = score.getScore();
+	    if (isLog && dataY <= 0) {
+		continue;
+	    }
 
-            // Note -- don't cast these to an int until the range is checked.
-            // could get an overflow.
-            double pX = ((score.getStart() - origin) / locScale);
-            double dx = Math.ceil((Math.max(1, score.getEnd() - score.getStart())) / locScale) + 1;
-            if ((pX + dx < 0)) {
-                continue;
-            } else if (pX > adjustedRect.getMaxX()) {
-                break;
-            }
+	    if (!Float.isNaN(dataY)) {
 
-            float dataY = score.getScore();
-            if (isLog && dataY <= 0) {
-                continue;
-            }
+		// Compute the pixel y location. Clip to bounds of rectangle.
+		double dy = isLog ? Math.log10(dataY) - baseValue : (dataY - baseValue);
+		int pY = baseY - (int) (dy * yScaleFactor);
+		if (pY < adjustedRect.y) {
+		    pY = adjustedRect.y;
+		} else if (pY > adjustedRect.y + adjustedRect.height) {
+		    pY = adjustedRect.y + adjustedRect.height;
+		}
 
-            if (!Float.isNaN(dataY)) {
+		Color color = (dataY >= baseValue) ? posColor : negColor;
+		drawDataPoint(color, (int) dx, (int) pX, baseY, pY, context);
 
+	    }
+	    if (!Float.isNaN(dataY)) {
 
-                // Compute the pixel y location.  Clip to bounds of rectangle.
-                double dy = isLog ? Math.log10(dataY) - baseValue : (dataY - baseValue);
-                int pY = baseY - (int) (dy * yScaleFactor);
-                if (pY < adjustedRect.y) {
-                    pY = adjustedRect.y;
-                } else if (pY > adjustedRect.y + adjustedRect.height) {
-                    pY = adjustedRect.y + adjustedRect.height;
-                }
+		lastPx = (int) pX + (int) dx;
 
-                Color color = (dataY >= baseValue) ? posColor : negColor;
-                drawDataPoint(color, (int) dx, (int) pX, baseY, pY, context);
-
-            }
-            if (!Float.isNaN(dataY)) {
-
-                lastPx = (int) pX + (int) dx;
-
-            }
-        }
-
+	    }
+	}
 
     }
 
@@ -164,155 +174,186 @@ public abstract class XYPlotRenderer extends DataRenderer {
     @Override
     public void renderAxis(Track track, RenderContext context, Rectangle arect) {
 
-        // For now disable axes for all chromosome view
-        if (context.getChr().equals(Globals.CHR_ALL) || context.multiframe) {
-            return;
-        }
+	// For now disable axes for all chromosome view
+	if (context.getChr().equals(Globals.CHR_ALL) || context.multiframe) {
+	    return;
+	}
 
-        super.renderAxis(track, context, arect);
+	super.renderAxis(track, context, arect);
 
-        Rectangle drawingRect = calculateDrawingRect(arect);
+	Rectangle drawingRect = calculateDrawingRect(arect);
 
-        IGVPreferences prefs = PreferencesManager.getPreferences();
+	IGVPreferences prefs = PreferencesManager.getPreferences();
 
-        Color labelColor = prefs.getAsBoolean(CHART_COLOR_TRACK_NAME) ? track.getColor() : Color.black;
-        Graphics2D labelGraphics = context.getGraphic2DForColor(labelColor);
+	Color labelColor = prefs.getAsBoolean(CHART_COLOR_TRACK_NAME) ? track.getColor() : Color.black;
+	Graphics2D labelGraphics = context.getGraphic2DForColor(labelColor);
 
-        labelGraphics.setFont(FontManager.getFont(8));
+	labelGraphics.setFont(FontManager.getFont(8));
 
-        if (prefs.getAsBoolean(CHART_DRAW_TRACK_NAME)) {
+	if (prefs.getAsBoolean(CHART_DRAW_TRACK_NAME)) {
 
-            // Only attempt if track height is > 25 pixels
-            if (arect.getHeight() > 25) {
-                Rectangle labelRect = new Rectangle(arect.x, arect.y + 10, arect.width, 10);
-                labelGraphics.setFont(FontManager.getFont(10));
-                GraphicUtils.drawCenteredText(track.getName(), labelRect, labelGraphics);
-            }
-        }
+	    // Only attempt if track height is > 25 pixels
+	    if (arect.getHeight() > 25) {
+		Rectangle labelRect = new Rectangle(arect.x, arect.y + 10, arect.width, 10);
+		labelGraphics.setFont(FontManager.getFont(10));
+		GraphicUtils.drawCenteredText(track.getName(), labelRect, labelGraphics);
+	    }
+	}
 
-        if (prefs.getAsBoolean(CHART_DRAW_Y_AXIS)) {
+	if (prefs.getAsBoolean(CHART_DRAW_Y_AXIS)) {
 
-            Rectangle axisRect = new Rectangle(arect.x, arect.y + 1, AXIS_AREA_WIDTH, arect.height);
+	    Rectangle axisRect = new Rectangle(arect.x, arect.y + 1, AXIS_AREA_WIDTH, arect.height);
 
+	    DataRange axisDefinition = track.getDataRange();
+	    float maxValue = axisDefinition.getMaximum();
+	    float baseValue = axisDefinition.getBaseline();
+	    float minValue = axisDefinition.getMinimum();
 
-            DataRange axisDefinition = track.getDataRange();
-            float maxValue = axisDefinition.getMaximum();
-            float baseValue = axisDefinition.getBaseline();
-            float minValue = axisDefinition.getMinimum();
+	    // Bottom (minimum tick mark)
+	    int pY = computeYPixelValue(drawingRect, axisDefinition, minValue);
 
+	    labelGraphics.drawLine(axisRect.x + AXIS_AREA_WIDTH - 10, pY, axisRect.x + AXIS_AREA_WIDTH - 5, pY);
+	    GraphicUtils.drawRightJustifiedText(formatter.format(minValue), axisRect.x + AXIS_AREA_WIDTH - 15, pY,
+		    labelGraphics);
 
-            // Bottom (minimum tick mark)
-            int pY = computeYPixelValue(drawingRect, axisDefinition, minValue);
+	    // Top (maximum tick mark)
+	    int topPY = computeYPixelValue(drawingRect, axisDefinition, maxValue);
 
-            labelGraphics.drawLine(axisRect.x + AXIS_AREA_WIDTH - 10, pY, axisRect.x + AXIS_AREA_WIDTH - 5, pY);
-            GraphicUtils.drawRightJustifiedText(formatter.format(minValue), axisRect.x + AXIS_AREA_WIDTH - 15, pY, labelGraphics);
+	    labelGraphics.drawLine(axisRect.x + AXIS_AREA_WIDTH - 10, topPY, axisRect.x + AXIS_AREA_WIDTH - 5, topPY);
+	    GraphicUtils.drawRightJustifiedText(formatter.format(maxValue), axisRect.x + AXIS_AREA_WIDTH - 15,
+		    topPY + 4, labelGraphics);
 
-            // Top (maximum tick mark)
-            int topPY = computeYPixelValue(drawingRect, axisDefinition, maxValue);
+	    // Connect top and bottom
+	    labelGraphics.drawLine(axisRect.x + AXIS_AREA_WIDTH - 10, topPY, axisRect.x + AXIS_AREA_WIDTH - 10, pY);
 
-            labelGraphics.drawLine(axisRect.x + AXIS_AREA_WIDTH - 10, topPY,
-                    axisRect.x + AXIS_AREA_WIDTH - 5, topPY);
-            GraphicUtils.drawRightJustifiedText(formatter.format(maxValue),
-                    axisRect.x + AXIS_AREA_WIDTH - 15, topPY + 4, labelGraphics);
+	    // Middle tick mark. Draw only if room
+	    int midPY = computeYPixelValue(drawingRect, axisDefinition, baseValue);
 
-            // Connect top and bottom
-            labelGraphics.drawLine(axisRect.x + AXIS_AREA_WIDTH - 10, topPY,
-                    axisRect.x + AXIS_AREA_WIDTH - 10, pY);
+	    if ((midPY < pY - 15) && (midPY > topPY + 15)) {
+		labelGraphics.drawLine(axisRect.x + AXIS_AREA_WIDTH - 10, midPY, axisRect.x + AXIS_AREA_WIDTH - 5,
+			midPY);
+		GraphicUtils.drawRightJustifiedText(formatter.format(baseValue), axisRect.x + AXIS_AREA_WIDTH - 15,
+			midPY + 4, labelGraphics);
+	    }
 
-            // Middle tick mark.  Draw only if room
-            int midPY = computeYPixelValue(drawingRect, axisDefinition, baseValue);
-
-            if ((midPY < pY - 15) && (midPY > topPY + 15)) {
-                labelGraphics.drawLine(axisRect.x + AXIS_AREA_WIDTH - 10, midPY,
-                        axisRect.x + AXIS_AREA_WIDTH - 5, midPY);
-                GraphicUtils.drawRightJustifiedText(formatter.format(baseValue),
-                        axisRect.x + AXIS_AREA_WIDTH - 15, midPY + 4, labelGraphics);
-            }
-
-        } else if (track.isShowDataRange() && arect.height > 20) {
-            drawScale(track.getDataRange(), context, arect);
-        }
+	} else if (track.isShowDataRange() && arect.height > 20) {
+	    drawScale(track.getDataRange(), context, arect);
+	}
     }
 
     @Override
     public void renderBorder(Track track, RenderContext context, Rectangle arect) {
 
-        Rectangle adjustedRect = calculateDrawingRect(arect);
+	Rectangle adjustedRect = calculateDrawingRect(arect);
 
-        // Draw boundaries if there is room
-        if (adjustedRect.getHeight() >= 10) {
+	// Draw boundaries if there is room
+	if (adjustedRect.getHeight() >= 10) {
 
-            ///TrackProperties pros = track.getProperties();
+	    /// TrackProperties pros = track.getProperties();
 
+	    // midline
 
-            // midline
+	    DataRange axisDefinition = track.getDataRange();
+	    float maxValue = axisDefinition.getMaximum();
+	    float baseValue = axisDefinition.getBaseline();
+	    float minValue = axisDefinition.getMinimum();
 
-            DataRange axisDefinition = track.getDataRange();
-            float maxValue = axisDefinition.getMaximum();
-            float baseValue = axisDefinition.getBaseline();
-            float minValue = axisDefinition.getMinimum();
+	    double maxX = adjustedRect.getMaxX();
+	    double x = adjustedRect.getX();
+	    double y = adjustedRect.getY();
 
+	    if ((baseValue > minValue) && (baseValue < maxValue)) {
+		int baseY = computeYPixelValue(adjustedRect, axisDefinition, baseValue);
 
-            double maxX = adjustedRect.getMaxX();
-            double x = adjustedRect.getX();
-            double y = adjustedRect.getY();
+		getBaselineGraphics(context).drawLine((int) x, baseY, (int) maxX, baseY);
+	    }
 
-            if ((baseValue > minValue) && (baseValue < maxValue)) {
-                int baseY = computeYPixelValue(adjustedRect, axisDefinition, baseValue);
+	    IGVPreferences prefs = PreferencesManager.getPreferences();
 
-                getBaselineGraphics(context).drawLine((int) x, baseY, (int) maxX, baseY);
-            }
+	    Color altColor = track.getAltColor();
+	    Color borderColor = (prefs.getAsBoolean(CHART_COLOR_BORDERS) && altColor != null
+		    && altColor.equals(track.getColor())) ? track.getColor() : Color.lightGray;
+	    Graphics2D borderGraphics = context.getGraphic2DForColor(borderColor);
 
-            IGVPreferences prefs = PreferencesManager.getPreferences();
+	    // Draw the baseline -- todo, this is a wig track option?
+	    double zeroValue = axisDefinition.getBaseline();
+	    int zeroY = computeYPixelValue(adjustedRect, axisDefinition, zeroValue);
+	    borderGraphics.drawLine(adjustedRect.x, zeroY, adjustedRect.x + adjustedRect.width, zeroY);
 
-            Color altColor = track.getAltColor();
-            Color borderColor = (prefs.getAsBoolean(CHART_COLOR_BORDERS) && altColor != null && altColor.equals(track.getColor()) )
-                    ? track.getColor() : Color.lightGray;
-            Graphics2D borderGraphics = context.getGraphic2DForColor(borderColor);
+	    // **********************************************
+	    // draw grid
+	    // **********************************************
+	    boolean isLog = axisDefinition.isLog();
+	    TrackGrid grid = track.getTrackGrid();
+	    if (grid != null && grid.getSpacing() > 0f && !isLog) {
+		// calculate max number of gridlines
+		Float numgrid = ((maxValue - minValue) / grid.getSpacing());
+		float pixheight = adjustedRect.height;
+		if (!numgrid.isInfinite() && pixheight / numgrid >= MIN_PIX_GRID_SPACE) {
+		    Stroke oldStroke = borderGraphics.getStroke();
+		    borderGraphics.setStroke(STROKE_DASHED);
+		    int offset = 1;
+		    int lineY = computeYPixelValue(adjustedRect, axisDefinition,
+			    zeroValue + offset * grid.getSpacing());
+		    // draw upper grid
+		    while (lineY < adjustedRect.getMaxY() && lineY > adjustedRect.getMinY()) {
+			// System.out.println("mx" + offset + " / " +lineY + " / " + adjustedRect.getMinY() + " / " + adjustedRect.getMaxY());
+			borderGraphics.drawLine(adjustedRect.x, lineY, adjustedRect.x + adjustedRect.width, lineY);
+			offset++;
+			lineY = computeYPixelValue(adjustedRect, axisDefinition,
+				zeroValue + offset * grid.getSpacing());
 
-            // Draw the baseline -- todo, this is a wig track option?
-            double zeroValue = axisDefinition.getBaseline();
-            int zeroY = computeYPixelValue(adjustedRect, axisDefinition, zeroValue);
-            borderGraphics.drawLine(adjustedRect.x, zeroY, adjustedRect.x + adjustedRect.width, zeroY);
+		    }
+		    // draw lower grid
+		    offset = -1;
+		    lineY = computeYPixelValue(adjustedRect, axisDefinition, zeroValue + offset * grid.getSpacing());
+		    while (lineY < adjustedRect.getMaxY() && lineY > adjustedRect.getMinY()) {
+			// System.out.println(offset + " / " +lineY + " / " + adjustedRect.getMinY());
+			borderGraphics.drawLine(adjustedRect.x, lineY, adjustedRect.x + adjustedRect.width, lineY);
+			offset--;
+			lineY = computeYPixelValue(adjustedRect, axisDefinition,
+				zeroValue + offset * grid.getSpacing());
+		    }
+		    borderGraphics.setStroke(oldStroke);
+		}
+	    }
+	    // **********************************************
 
-            // Optionally draw "Y" line  (UCSC track line option)
-            if (track.isDrawYLine()) {
-                Graphics2D yLineGraphics = context.getGraphic2DForColor(Color.gray);
-                int yLine = computeYPixelValue(adjustedRect, axisDefinition, track.getYLine());
-                GraphicUtils.drawDashedLine(borderGraphics, adjustedRect.x, yLine, adjustedRect.x + adjustedRect.width, yLine);
-            }
+	    // Optionally draw "Y" line (UCSC track line option)
+	    if (track.isDrawYLine()) {
+		Graphics2D yLineGraphics = context.getGraphic2DForColor(Color.gray);
+		int yLine = computeYPixelValue(adjustedRect, axisDefinition, track.getYLine());
+		GraphicUtils.drawDashedLine(borderGraphics, adjustedRect.x, yLine, adjustedRect.x + adjustedRect.width,
+			yLine);
+	    }
 
+	    // If the chart has + and - numbers draw both borders or none. This
+	    // needs documented somewhere.
+	    boolean drawBorders = true;
 
-            // If the chart has + and - numbers draw both borders or none. This
-            // needs documented somewhere.
-            boolean drawBorders = true;
+	    if (minValue * maxValue < 0) {
+		drawBorders = prefs.getAsBoolean(CHART_DRAW_BOTTOM_BORDER) && prefs.getAsBoolean(CHART_DRAW_TOP_BORDER);
+	    }
 
-            if (minValue * maxValue < 0) {
-                drawBorders = prefs.getAsBoolean(CHART_DRAW_BOTTOM_BORDER) &&
-                        prefs.getAsBoolean(CHART_DRAW_TOP_BORDER);
-            }
+	    if (drawBorders && prefs.getAsBoolean(CHART_DRAW_TOP_BORDER)) {
+		borderGraphics.drawLine(adjustedRect.x, adjustedRect.y, adjustedRect.x + adjustedRect.width,
+			adjustedRect.y);
+	    }
 
-            if (drawBorders && prefs.getAsBoolean(CHART_DRAW_TOP_BORDER)) {
-                borderGraphics.drawLine(adjustedRect.x, adjustedRect.y,
-                        adjustedRect.x + adjustedRect.width, adjustedRect.y);
-            }
+	    if (drawBorders && prefs.getAsBoolean(CHART_DRAW_BOTTOM_BORDER)) {
+		borderGraphics.drawLine(adjustedRect.x, adjustedRect.y + adjustedRect.height,
+			adjustedRect.x + adjustedRect.width, adjustedRect.y + adjustedRect.height);
+	    }
 
-            if (drawBorders && prefs.getAsBoolean(CHART_DRAW_BOTTOM_BORDER)) {
-                borderGraphics.drawLine(adjustedRect.x, adjustedRect.y + adjustedRect.height,
-                        adjustedRect.x + adjustedRect.width,
-                        adjustedRect.y + adjustedRect.height);
-            }
-        }
-        /*
-        (CHART_DRAW_TOP_BORDER));
-        prefs.setDrawBottomBorder(getBooleanPreference(CHART_DRAW_BOTTOM_BORDER));
-        prefs.setColorBorders(getBooleanPreference(CHART_COLOR_BORDERS));
-        prefs.setDrawAxis(getBooleanPreference(CHART_DRAW_Y_AXIS));
-        prefs.setDrawTrackName(getBooleanPreference(CHART_DRAW_TRACK_NAME));
-        prefs.setColorTrackName(getBooleanPreference(CHART_COLOR_TRACK_NAME));
-        prefs.setAutoscale(getBooleanPreference(CHART_AUTOSCALE));
-        prefs.setShowDataRange(getBooleanPreference(CHART_SHOW_DATA_RANGE));
-         */
+	}
+	/* (CHART_DRAW_TOP_BORDER));
+	 * prefs.setDrawBottomBorder(getBooleanPreference(CHART_DRAW_BOTTOM_BORDER));
+	 * prefs.setColorBorders(getBooleanPreference(CHART_COLOR_BORDERS));
+	 * prefs.setDrawAxis(getBooleanPreference(CHART_DRAW_Y_AXIS));
+	 * prefs.setDrawTrackName(getBooleanPreference(CHART_DRAW_TRACK_NAME));
+	 * prefs.setColorTrackName(getBooleanPreference(CHART_COLOR_TRACK_NAME));
+	 * prefs.setAutoscale(getBooleanPreference(CHART_AUTOSCALE));
+	 * prefs.setShowDataRange(getBooleanPreference(CHART_SHOW_DATA_RANGE)); */
     }
 
     /**
@@ -323,10 +364,10 @@ public abstract class XYPlotRenderer extends DataRenderer {
      * @return
      */
     private static Graphics2D getBaselineGraphics(RenderContext context) {
-        Graphics2D baselineGraphics;
-        baselineGraphics = (Graphics2D) context.getGraphic2DForColor(Color.lightGray).create();
-        baselineGraphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        return baselineGraphics;
+	Graphics2D baselineGraphics;
+	baselineGraphics = (Graphics2D) context.getGraphic2DForColor(Color.lightGray).create();
+	baselineGraphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+	return baselineGraphics;
     }
 
     /**
@@ -335,36 +376,35 @@ public abstract class XYPlotRenderer extends DataRenderer {
      * @return
      */
     public String getDisplayName() {
-        return "Scatter Plot";
+	return "Scatter Plot";
     }
 
     protected int computeYPixelValue(Rectangle drawingRect, DataRange axisDefinition, double dataY) {
 
-        double maxValue = axisDefinition.getMaximum();
-        double minValue = axisDefinition.getMinimum();
+	double maxValue = axisDefinition.getMaximum();
+	double minValue = axisDefinition.getMinimum();
 
-        double yScaleFactor = drawingRect.getHeight() / (maxValue - minValue);
+	double yScaleFactor = drawingRect.getHeight() / (maxValue - minValue);
 
-        // Compute the pixel y location.  Clip to bounds of rectangle.
-        // The distince in pixels frmo the data value to the axis maximum
-        double delta = (maxValue - dataY) * yScaleFactor;
-        double pY = drawingRect.getY() + delta;
+	// Compute the pixel y location. Clip to bounds of rectangle.
+	// The distince in pixels frmo the data value to the axis maximum
+	double delta = (maxValue - dataY) * yScaleFactor;
+	double pY = drawingRect.getY() + delta;
 
-        return (int) Math.max(drawingRect.getMinY(), Math.min(drawingRect.getMaxY(), pY));
+	return (int) Math.max(drawingRect.getMinY(), Math.min(drawingRect.getMaxY(), pY));
     }
 
     protected Rectangle calculateDrawingRect(Rectangle arect) {
 
-        double buffer = Math.min(arect.getHeight() * marginFraction, 10);
-        Rectangle adjustedRect = new Rectangle(arect);
-        adjustedRect.y = (int) (arect.getY() + buffer);
-        adjustedRect.height = (int) (arect.height - (adjustedRect.y - arect.getY()));
+	double buffer = Math.min(arect.getHeight() * marginFraction, 10);
+	Rectangle adjustedRect = new Rectangle(arect);
+	adjustedRect.y = (int) (arect.getY() + buffer);
+	adjustedRect.height = (int) (arect.height - (adjustedRect.y - arect.getY()));
 
-
-        return adjustedRect;
+	return adjustedRect;
     }
 
     public void setMarginFraction(double marginFraction) {
-        this.marginFraction = marginFraction;
+	this.marginFraction = marginFraction;
     }
 }

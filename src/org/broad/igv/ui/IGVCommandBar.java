@@ -733,7 +733,7 @@ public class IGVCommandBar extends javax.swing.JPanel implements IGVEventObserve
 	// roiToggleButton.setButtonStyle(JideButton.TOOLBOX_STYLE);
 	// roiToggleButton.setBorder(toolButtonBorder);
 	roiToggleButton.setAlignmentX(RIGHT_ALIGNMENT);
-	roiToggleButton.setToolTipText("Define a region of interest.");
+	roiToggleButton.setToolTipText("Add genomic region (CTRL-ALT-A).");
 	roiToggleButton.setMaximumSize(new java.awt.Dimension(32, 32));
 	roiToggleButton.setMinimumSize(new java.awt.Dimension(32, 32));
 	roiToggleButton.setPreferredSize(new java.awt.Dimension(32, 32));
@@ -748,7 +748,7 @@ public class IGVCommandBar extends javax.swing.JPanel implements IGVEventObserve
 	Icon clipRegionOfInterestIcon = IconFactory.getInstance().getIcon(IconFactory.IconID.CLIP_REGION_OF_INTEREST);
 	roiClipToggleButton = new JideToggleButton(clipRegionOfInterestIcon);
 	roiClipToggleButton.setAlignmentX(RIGHT_ALIGNMENT);
-	roiClipToggleButton.setToolTipText("Clip regions of interest.");
+	roiClipToggleButton.setToolTipText("Clip genomic region (CTRL-ALT-C).");
 	roiClipToggleButton.setMaximumSize(new java.awt.Dimension(32, 32));
 	roiClipToggleButton.setMinimumSize(new java.awt.Dimension(32, 32));
 	roiClipToggleButton.setPreferredSize(new java.awt.Dimension(32, 32));
@@ -763,7 +763,7 @@ public class IGVCommandBar extends javax.swing.JPanel implements IGVEventObserve
 	Icon mergeRegionOfInterestIcon = IconFactory.getInstance().getIcon(IconFactory.IconID.MERGE_REGION_OF_INTEREST);
 	roiMergeToggleButton = new JideToggleButton(mergeRegionOfInterestIcon);
 	roiMergeToggleButton.setAlignmentX(RIGHT_ALIGNMENT);
-	roiMergeToggleButton.setToolTipText("Merge regions of interest.");
+	roiMergeToggleButton.setToolTipText("Merge genomic regions (CTRL-ALT-M)");
 	roiMergeToggleButton.setMaximumSize(new java.awt.Dimension(32, 32));
 	roiMergeToggleButton.setMinimumSize(new java.awt.Dimension(32, 32));
 	roiMergeToggleButton.setPreferredSize(new java.awt.Dimension(32, 32));
@@ -778,7 +778,7 @@ public class IGVCommandBar extends javax.swing.JPanel implements IGVEventObserve
 	Icon undoRegionOfInterestIcon = IconFactory.getInstance().getIcon(IconFactory.IconID.UNDO_REGION_OF_INTEREST);
 	undoButton = new JideButton(undoRegionOfInterestIcon);
 	undoButton.setAlignmentX(RIGHT_ALIGNMENT);
-	undoButton.setToolTipText("Undo regions of interest changes.");
+	undoButton.setToolTipText("Undo VARAN changes (CTRL-Z).");
 	undoButton.setMaximumSize(new java.awt.Dimension(32, 32));
 	undoButton.setMinimumSize(new java.awt.Dimension(32, 32));
 	undoButton.setPreferredSize(new java.awt.Dimension(32, 32));

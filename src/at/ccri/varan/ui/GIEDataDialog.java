@@ -581,6 +581,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	// ======== this ========
 	setTitle("VARAN-GIE :: Genomic Intervals");
 	setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+	setMinimumSize(new Dimension(640, 300));
 	Container contentPane = getContentPane();
 	getContentPane().setLayout(new BorderLayout());
 	// +++++++++++++++++++++++++++++++++++++++++++++++
@@ -597,7 +598,6 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	Integer[] coords = GIE.getInstance().getWindowCoordinates().get("GIEDataDialog");
 	if (coords == null) {
 	    setPreferredSize(new Dimension(640, 500));
-	    setMinimumSize(new Dimension(640, 300));
 	    setLocationRelativeTo(IGV.getMainFrame());
 	} else {
 	    // check compatibility with actual screen size
