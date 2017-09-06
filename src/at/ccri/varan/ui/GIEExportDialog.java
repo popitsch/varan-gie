@@ -92,7 +92,7 @@ public class GIEExportDialog extends JDialog implements Observer, IGVEventObserv
     public Integer[] getCoords() {
 	if (!isShowing())
 	    return null;
-	return new Integer[] { (int) getLocationOnScreen().getX(), (int) getLocationOnScreen().getY(), getWidth(),
+	return new Integer[] { Math.max(0, (int) getLocationOnScreen().getX()),  Math.max(0, (int) getLocationOnScreen().getY()), getWidth(),
 		getHeight() };
     }
 
