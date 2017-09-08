@@ -161,6 +161,13 @@ public class GIEDatasetVersionLayer {
 	IGV.getInstance().removeRegionsOfInterest(reg);
     }
 
+    public boolean hasAnnotation(String key) {
+	for ( String k : annotations)
+	    if ( k.equals(key))
+		return true;
+	return false;
+    }
+    
     /**
      * Import data from external file and load into layer.
      * 

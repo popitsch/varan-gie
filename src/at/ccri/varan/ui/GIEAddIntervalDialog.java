@@ -78,7 +78,7 @@ public class GIEAddIntervalDialog extends JDialog implements Observer, IGVEventO
     private static final long serialVersionUID = 1L;
 
     private static Logger log = Logger.getLogger(GIEAddIntervalDialog.class);
-    
+
     private static String lastText = "";
 
     public GIEAddIntervalDialog(Frame owner) {
@@ -92,8 +92,8 @@ public class GIEAddIntervalDialog extends JDialog implements Observer, IGVEventO
     public Integer[] getCoords() {
 	if (!isShowing())
 	    return null;
-	return new Integer[] { Math.max(0, (int) getLocationOnScreen().getX()),  Math.max(0, (int) getLocationOnScreen().getY()), getWidth(),
-		getHeight() };
+	return new Integer[] { Math.max(0, (int) getLocationOnScreen().getX()),
+		Math.max(0, (int) getLocationOnScreen().getY()), getWidth(), getHeight() };
     }
 
     /**
@@ -247,8 +247,9 @@ public class GIEAddIntervalDialog extends JDialog implements Observer, IGVEventO
 				String chr = s1[0];
 				if (g != null)
 				    chr = g.getCanonicalChrName(chr);
-				Integer start = Integer.parseInt(s2[0]);
-				Integer end = Integer.parseInt(s3[0]);
+
+				Integer start = CanonicalChromsomeComparator.parseCoordinate(chr, null, s2[0]);
+				Integer end = CanonicalChromsomeComparator.parseCoordinate(chr, null, s3[0]);
 				String description = "imported" + c;
 				if (s3.length > 1)
 				    description = s3[1];
@@ -264,8 +265,10 @@ public class GIEAddIntervalDialog extends JDialog implements Observer, IGVEventO
 				String chr = tabtest[0];
 				if (g != null)
 				    chr = g.getCanonicalChrName(chr);
-				Integer start = Integer.parseInt(tabtest[1]);
-				Integer end = Integer.parseInt(tabtest[2]);
+				
+				Integer start = CanonicalChromsomeComparator.parseCoordinate(chr, null, tabtest[1]);
+				Integer end = CanonicalChromsomeComparator.parseCoordinate(chr, null, tabtest[2]);
+
 				String description = "imported" + c;
 				if (tabtest.length > 3)
 				    description = tabtest[3];

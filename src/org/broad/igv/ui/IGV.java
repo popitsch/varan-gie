@@ -226,7 +226,6 @@ public class IGV implements IGVEventObserver {
 
     private GenomeManager genomeManager;
     private List<String> chromNames = null;
-    
 
     /**
      * Attribute used to group tracks. Normally "null". Set from the "Tracks" menu.
@@ -426,8 +425,9 @@ public class IGV implements IGVEventObserver {
     public Integer[] getCoords() {
 	if (!mainFrame.isShowing())
 	    return null;
-	return new Integer[] { (int) mainFrame.getLocationOnScreen().getX(),
-		(int) mainFrame.getLocationOnScreen().getY(), mainFrame.getWidth(), mainFrame.getHeight() };
+	return new Integer[] { Math.max(0, (int) mainFrame.getLocationOnScreen().getX()),
+		Math.max(0, (int) mainFrame.getLocationOnScreen().getY()), Math.max(100, mainFrame.getWidth()),
+		Math.max(100, mainFrame.getHeight()) };
     }
 
     private void consumeEvents(Component glassPane) {
@@ -494,11 +494,10 @@ public class IGV implements IGVEventObserver {
 	doRefresh();
     }
 
-    
     public void clearRegionsOfInterest() {
 	session.clearRegionsOfInterest();
     }
-    
+
     public void removeRegionsOfInterest(Collection<RegionOfInterest> rois) {
 	session.removeROI(rois);
 	doRefresh();
@@ -511,7 +510,7 @@ public class IGV implements IGVEventObserver {
     }
 
     public void clipROI(RegionOfInterest roi) {
-	session.addROI(roi, true,  true);
+	session.addROI(roi, true, true);
 	doRefresh();
     }
 
@@ -519,7 +518,7 @@ public class IGV implements IGVEventObserver {
 	session.mergeROI(roi, true);
 	doRefresh();
     }
-    
+
     void beginROI(JButton button) {
 	for (TrackPanel tp : getTrackPanels()) {
 	    TrackPanelScrollPane tsv = tp.getScrollPane();
@@ -572,8 +571,6 @@ public class IGV implements IGVEventObserver {
 	}
     }
 
-    
-    
     /**
      * merge tool
      * 
@@ -603,8 +600,7 @@ public class IGV implements IGVEventObserver {
 	    dp.setCurrentTool(null);
 	}
     }
-    
-    
+
     // Set the focus on the command bar search box
     public void focusSearchBox() {
 	contentPane.getCommandBar().focusSearchBox();
@@ -2634,7 +2630,6 @@ public class IGV implements IGVEventObserver {
 	return completed;
     }
 
-
     public void receiveEvent(Object event) {
 
 	if (event instanceof ViewChange || event instanceof InsertionSelectionEvent) {
@@ -2644,8 +2639,8 @@ public class IGV implements IGVEventObserver {
 	} else if (event instanceof GenomeChangeEvent) {
 	    doRefresh();
 	    // update list of possible chromosomes
-		Genome g = GenomeManager.getInstance().getCurrentGenome();
-		this.setChromNames(g.getAllChromosomeNames());
+	    Genome g = GenomeManager.getInstance().getCurrentGenome();
+	    this.setChromNames(g.getAllChromosomeNames());
 	} else {
 	    log.info("Unknown event type: " + event.getClass());
 	}
@@ -2655,7 +2650,7 @@ public class IGV implements IGVEventObserver {
     public List<String> getChromNames() {
 	return chromNames;
     }
-    
+
     public String[] getChromNamesArray() {
 	return chromNames.toArray(new String[chromNames.size()]);
     }

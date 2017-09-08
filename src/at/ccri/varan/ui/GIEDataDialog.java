@@ -108,7 +108,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
     private static final long serialVersionUID = 1L;
 
     private static Logger log = Logger.getLogger(GIEDataDialog.class);
-    
+
     /**
      * Singleton instance
      */
@@ -570,8 +570,8 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
     public Integer[] getCoords() {
 	if (!isShowing())
 	    return null;
-	return new Integer[] { Math.max(0, (int) getLocationOnScreen().getX()),  Math.max(0, (int) getLocationOnScreen().getY()), getWidth(),
-		getHeight() };
+	return new Integer[] { Math.max(0, (int) getLocationOnScreen().getX()),
+		Math.max(0, (int) getLocationOnScreen().getY()), getWidth(), getHeight() };
     }
 
     /**
@@ -777,14 +777,14 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 		    }
 		    break;
 		case COLIDX_Start:
-		    r.setStart(Math.abs(Integer.parseInt(v)));
+		    r.setStart(CanonicalChromsomeComparator.parseCoordinate(r.getChr(), r.getStart(), v));
 		    super.setValueAt(getIntervalWidth(r.getEnd() - r.getStart()), row, COLIDX_Width);
-		    super.setValueAt(value, row, col);
+		    super.setValueAt(v, row, col);
 		    break;
 		case COLIDX_End:
-		    r.setEnd(Math.abs(Integer.parseInt(v)));
+		    r.setEnd(CanonicalChromsomeComparator.parseCoordinate(r.getChr(), r.getEnd(), v));
 		    super.setValueAt(getIntervalWidth(r.getEnd() - r.getStart()), row, COLIDX_Width);
-		    super.setValueAt(value, row, col);
+		    super.setValueAt(v, row, col);
 		    break;
 		case COLIDX_Name:
 		    r.setDescription(v);
@@ -1350,8 +1350,33 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 					    : "";
 				    String value = JOptionPane.showInputDialog(null, s + ": ", prev);
 				    if (value != null) {
-					for (RegionOfInterest r : selectedRegions)
-					    r.addAnnotation(s, value);
+					if (value.startsWith("ATTR ")) {
+					    String attrname = value.substring("ATTR ".length());
+					    if (!GIE.getInstance().getActiveDataset().getCurrentVersion()
+						    .getActiveLayer().hasAnnotation(attrname)) {
+						log.error("Cannot find custom attribute " + attrname);
+					    } else {
+						for (RegionOfInterest r : selectedRegions) {
+						    r.addAnnotation(s, r.getAnnotation(attrname));
+						}
+					    }
+					} else if (value.startsWith("PRE ")) {
+					    String prefix = value.substring("PRE ".length());
+					    for (RegionOfInterest r : selectedRegions) {
+						r.addAnnotation(s, prefix + r.getAnnotation(s));
+					    }
+
+					} else if (value.startsWith("POST ")) {
+					    String postfix = value.substring("POST ".length());
+					    for (RegionOfInterest r : selectedRegions) {
+						r.addAnnotation(s, r.getAnnotation(s) + postfix);
+					    }
+
+					} else {
+					    for (RegionOfInterest r : selectedRegions) {
+						r.addAnnotation(s, value);
+					    }
+					}
 				    }
 				    reloadTable();
 				}

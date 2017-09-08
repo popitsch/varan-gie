@@ -4,6 +4,12 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+import org.broad.igv.feature.RegionOfInterest;
+import org.broad.igv.feature.genome.GenomeManager;
+
+import javafx.scene.layout.Region;
+
 /**
  * Compare chromosomes in a canonical fashion. Order is 1, 2, 3, ..., 22, M, X,
  * Y, <other-char-ordered>
@@ -12,6 +18,8 @@ import java.util.Map;
  * 
  */
 public class CanonicalChromsomeComparator implements Comparator<String> {
+
+    private static Logger log = Logger.getLogger(CanonicalChromsomeComparator.class);
 
     public static String[] canonicalChromosomes = new String[] { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
 	    "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "M", "X", "Y" };
@@ -64,6 +72,59 @@ public class CanonicalChromsomeComparator implements Comparator<String> {
 	canonicalMappingHuman.put("chrMT", "M");
 
     }
+    
+    /**
+     * Count the breakpoints
+     * @param r
+     * @return
+     */
+    public static int countBreakpoints(RegionOfInterest r) {
+	int chrlen = GenomeManager.getInstance().getCurrentGenome().getChromosome(r.getChr()).getLength();
+	int bp = 0;
+	if ( r.getStart() > 0 && r.getStart() < chrlen)
+	    bp++;
+	if ( r.getEnd() > 0 && r.getEnd() < chrlen)
+	    bp++;
+	return bp;
+    }
+
+    /**
+     * Parse a genomic coordinate. Supports special strings such as qter and pter
+     * and relative coordinates such as +100
+     * 
+     * @param chr
+     * @param newString
+     * @return
+     */
+    public static int parseCoordinate(String chr, Integer previous, String newString) {
+	if (previous == null)
+	    previous = 0;
+	if (newString.equalsIgnoreCase("pter"))
+	    // set to pter
+	    return 0;
+	else if (newString.equalsIgnoreCase("qter")) {
+	    // set to qter
+	    try {
+		return GenomeManager.getInstance().getCurrentGenome().getChromosome(chr).getLength();
+	    } catch (Exception e) {
+		log.error(e.getMessage());
+		return 0;
+	    }
+	} else {
+	    // set to offset
+	    try {
+		if (newString.startsWith("+"))
+		    return (previous + Math.max(0,Integer.parseInt(newString.substring(1))));
+		else if (newString.startsWith("-"))
+		    return (previous - Math.max(0, Integer.parseInt(newString.substring(1))));
+		else
+		    return (Math.max(0, Integer.parseInt(newString)));
+	    } catch (Exception e) {
+		log.error(e.getMessage());
+		return 0;
+	    }
+	}
+    }
 
     /**
      * Determines the chrom categor.
@@ -107,7 +168,6 @@ public class CanonicalChromsomeComparator implements Comparator<String> {
 	return chromSizes.get(c);
     }
 
-       
     /**
      * Compares its two arguments for order. Returns a negative integer, zero,
      * or a positive integer as the first argument is less than, equal to, or
