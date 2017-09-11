@@ -935,6 +935,8 @@ public class IGVMenuBar extends JMenuBar implements IGVEventObserver {
 	menuAction.setToolTipText("Add/remove predefined annotation tracks");
 	menuItems.add(MenuAndToolbarUtils.createMenuItem(menuAction));
 
+	menuItems.add(new JSeparator());
+	
 	// ...............................
 	// GIE about menu
 	// ...............................

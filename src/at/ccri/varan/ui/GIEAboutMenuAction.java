@@ -76,7 +76,7 @@ public class GIEAboutMenuAction extends MenuAction {
 
 	    "CTRL-C", "Copy region coordinates",
 
-	    "CTRL-H", "Show/hide refernce lines",
+	    "CTRL-H", "Toggle vertical reference lines",
 
 	    "CTRL-#", "Switch to layer (#=1..9)" };
 
@@ -114,7 +114,7 @@ public class GIEAboutMenuAction extends MenuAction {
 	});
 	ep.setEditable(false);
 
-	JOptionPane.showMessageDialog(null, ep, "About GIE", JOptionPane.INFORMATION_MESSAGE, icon);
+	JOptionPane.showMessageDialog(null, ep, "About VARAN-GIE", JOptionPane.INFORMATION_MESSAGE, icon);
 
     }
 

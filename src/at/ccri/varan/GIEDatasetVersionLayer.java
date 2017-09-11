@@ -39,6 +39,11 @@ public class GIEDatasetVersionLayer {
     File dataFile;
 
     /**
+     * The description of the layer
+     */
+    String description;
+
+    /**
      * The name of the layer
      */
     private transient String layerName;
@@ -144,30 +149,39 @@ public class GIEDatasetVersionLayer {
 		e.printStackTrace();
 	    }
 
-	// update igv regions data struct
-	IGV.getInstance().getSession().clearRegionsOfInterest();
-	IGV.getInstance().addROI(regions);
+	if (GIE.getInstance().getActiveDataset() != null
+		&& GIE.getInstance().getActiveDataset().getCurrentVersion() != null
+		&& GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer() != null
+		&& GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer().equals(this)) {
+	    // update igv regions data struct
+	    IGV.getInstance().getSession().clearRegionsOfInterest();
+	    IGV.getInstance().addROI(regions);
+	}
 
 	return regions;
     }
 
     public void addRegions(List<RegionOfInterest> reg) {
+	if (regions == null)
+	    regions = new TreeSet<>();
 	regions.addAll(reg);
 	IGV.getInstance().addROI(reg);
     }
 
     public void removeRegions(List<RegionOfInterest> reg) {
+	if (regions == null)
+	    regions = new TreeSet<>();
 	regions.removeAll(reg);
 	IGV.getInstance().removeRegionsOfInterest(reg);
     }
 
     public boolean hasAnnotation(String key) {
-	for ( String k : annotations)
-	    if ( k.equals(key))
+	for (String k : annotations)
+	    if (k.equals(key))
 		return true;
 	return false;
     }
-    
+
     /**
      * Import data from external file and load into layer.
      * 
@@ -191,8 +205,10 @@ public class GIEDatasetVersionLayer {
 		while ((nextLine = reader.readLine()) != null && (nextLine.trim().length() > 0)) {
 		    c++;
 		    String[] t = nextLine.split("\t");
-		    if (t[0].startsWith("track") || t[0].startsWith("browser "))
+		    if (t[0].startsWith("track") || t[0].startsWith("browser ")) {
+			// FIXME: parse description if any
 			continue;
+		    }
 		    if (t.length < 4)
 			throw new IOException("Wrong format. Not a BED file?");
 		    String chr = t[0];
@@ -233,16 +249,25 @@ public class GIEDatasetVersionLayer {
     }
 
     /**
-     * Save layer
+     * Update and save layer
      * 
      * @param rois
      */
-    public void save() {
+    public void updateAndSave() {
 	// System.out.println("Saving current intervals to " + getDataFile());
 	if (regions == null)
 	    regions = new TreeSet<>();
 	regions.clear();
 	regions.addAll(IGV.getInstance().getSession().getAllRegionsOfInterest());
+	save();
+    }
+
+    /**
+     * Save current layer
+     * 
+     * @param rois
+     */
+    public void save() {
 	GIE.getInstance().export2bed(regions, getDataFile(),
 		getVersion().getDataset().getName() + "." + getVersion().getVersionName() + "." + layerName,
 		"GIE data track", false, false, false, true, annotations);
@@ -335,6 +360,14 @@ public class GIEDatasetVersionLayer {
     public void updateFilePaths(Map<File, File> fileMap) {
 	if (fileMap.containsKey(dataFile))
 	    dataFile = fileMap.get(dataFile);
+    }
+
+    public String getDescription() {
+	return description;
+    }
+
+    public void setDescription(String description) {
+	this.description = description;
     }
 
     @Override

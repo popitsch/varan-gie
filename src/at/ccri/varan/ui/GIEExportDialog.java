@@ -68,6 +68,7 @@ import org.broad.igv.feature.RegionOfInterest;
 import org.broad.igv.ui.IGV;
 
 import at.ccri.varan.GIE;
+import at.ccri.varan.GIEDatasetVersionLayer;
 
 /**
  * @author niko.popitsch
@@ -92,8 +93,8 @@ public class GIEExportDialog extends JDialog implements Observer, IGVEventObserv
     public Integer[] getCoords() {
 	if (!isShowing())
 	    return null;
-	return new Integer[] { Math.max(0, (int) getLocationOnScreen().getX()),  Math.max(0, (int) getLocationOnScreen().getY()), getWidth(),
-		getHeight() };
+	return new Integer[] { Math.max(0, (int) getLocationOnScreen().getX()),
+		Math.max(0, (int) getLocationOnScreen().getY()), getWidth(), getHeight() };
     }
 
     /**
@@ -111,7 +112,7 @@ public class GIEExportDialog extends JDialog implements Observer, IGVEventObserv
     private void init() {
 	// ======== this ========
 	setTitle("VARAN-GIE :: Export Data");
-	setMinimumSize(new Dimension(550, 400));
+	setMinimumSize(new Dimension(550, 450));
 	setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 
 	// +++++++++++++++++++++++++++++++++++++++++++++++
@@ -125,7 +126,7 @@ public class GIEExportDialog extends JDialog implements Observer, IGVEventObserv
 	});
 	Integer[] coords = GIE.getInstance().getWindowCoordinates().get("GIEExportDialog");
 	if (coords == null) {
-	    setPreferredSize(new Dimension(500, 280));
+	    setPreferredSize(new Dimension(550, 450));
 	    setLocationRelativeTo(IGV.getMainFrame());
 	} else {
 	    // check compatibility with actual screen size
@@ -160,14 +161,22 @@ public class GIEExportDialog extends JDialog implements Observer, IGVEventObserv
 
 	// descr
 	JLabel l3 = new JLabel("Description", JLabel.TRAILING);
-	JTextArea textArea = new JTextArea(3, 20);
+	JTextArea textArea = new JTextArea(10, 20);
 	textArea.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+	JScrollPane scroll = new JScrollPane (textArea);
 	if (GIE.getInstance().getActiveDatasetName() != null
-		&& GIE.getInstance().getActiveDataset().getCurrentVersion() != null)
-	    textArea.setText(GIE.getInstance().getActiveDataset().getCurrentVersion().getDescription());
-	l3.setLabelFor(textArea);
+		&& GIE.getInstance().getActiveDataset().getCurrentVersion() != null) {
+	    String description = GIE.getInstance().getActiveDataset().getCurrentVersion().getDescription();
+	    for (GIEDatasetVersionLayer layer : GIE.getInstance().getActiveDataset().getCurrentVersion().getLayers()
+		    .values()) {
+		if (layer.getDescription() != null)
+		    description += "\n" + layer.getLayerName() + ":\n" + layer.getDescription();
+	    }
+	    textArea.setText(description);
+	}
+	l3.setLabelFor(scroll);
 	formPanel.add(l3);
-	formPanel.add(textArea);
+	formPanel.add(scroll);
 
 	// layers
 	JLabel la = new JLabel("<html><body>Exported Layers<br/>(will be merged if<br/>multiple selected)",
@@ -238,7 +247,8 @@ public class GIEExportDialog extends JDialog implements Observer, IGVEventObserv
 	formPanel.add(new JLabel(""));
 	formPanel.add(ucscBasic);
 
-	JCheckBox ucscNoHeader = new JCheckBox("Do not write track header");
+	JCheckBox ucscNoHeader = new JCheckBox("Do not write header");
+	ucscNoHeader.setSelected(true);
 	formPanel.add(new JLabel(""));
 	formPanel.add(ucscNoHeader);
 
@@ -265,8 +275,9 @@ public class GIEExportDialog extends JDialog implements Observer, IGVEventObserv
 
 		SortedSet<RegionOfInterest> rois = new TreeSet<>();
 		for (String lay : ll.getSelectedValuesList()) {
-		    rois.addAll(
-			    GIE.getInstance().getActiveDataset().getCurrentVersion().getLayers().get(lay).getRegions());
+		    GIEDatasetVersionLayer layer = GIE.getInstance().getActiveDataset().getCurrentVersion().getLayers()
+			    .get(lay);
+		    rois.addAll(layer.getRegions());
 		}
 		String[] annotations = GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer()
 			.getAnnotations();

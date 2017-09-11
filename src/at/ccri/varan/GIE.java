@@ -3,6 +3,7 @@ package at.ccri.varan;
 import java.awt.DisplayMode;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -12,6 +13,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Reader;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
@@ -1260,8 +1262,9 @@ public class GIE {
      * Export data to UCSC file
      * 
      * @param file
+     * @throws IOException 
      */
-    public boolean export2tsv(Collection<RegionOfInterest> rois, File outFile, String name, String description,
+    public boolean export2tsv(Collection<RegionOfInterest> intervals, File outFile, String name, String description,
 	    boolean prefixChr, boolean exportOnlyBasic, boolean noHeader, String[] annotations) {
 
 	if (!outFile.getParentFile().exists()) {
@@ -1273,7 +1276,8 @@ public class GIE {
 	    JOptionPane.showMessageDialog(IGV.getMainFrame(), "File extension has to be .tsv ");
 	    return false;
 	}
-	description = description.replaceAll("\"", "'");
+	if (description != null)
+	    description = description.replaceAll("\"", "'");
 
 	PrintWriter out = null;
 	WaitCursorManager.CursorToken token = WaitCursorManager.showWaitCursor();
@@ -1286,13 +1290,25 @@ public class GIE {
 		    out.println(h[0] + "\t" + h[1] + "\t" + h[2] + "\t" + h[3]);
 		} else {
 		    // "Chr\tStart\tEnd\tName\tStrand\tScore\tColor"
+		    if (description != null) {
+			BufferedReader reader = new BufferedReader(new StringReader(description));
+			String line = null;
+			try {
+			    while ((line = reader.readLine()) != null) {
+			        out.println("#" + line);
+			    }
+			} catch (IOException e) {
+			    e.printStackTrace();
+			}
+		    }
+
 		    out.print(h[0] + "\t" + h[1] + "\t" + h[2] + "\t" + h[3] + "\t" + h[4] + "\t" + h[5] + "\t" + h[6]);
 		    for (String cn : annotations)
 			out.print("\t" + cn);
 		    out.println();
 		}
 	    }
-	    for (RegionOfInterest r : rois) {
+	    for (RegionOfInterest r : intervals) {
 		String chr = r.getChr();
 		if (prefixChr) {
 		    if (!chr.startsWith("chr"))

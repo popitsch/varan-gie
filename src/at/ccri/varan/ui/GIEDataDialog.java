@@ -650,7 +650,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 			    // ensure that new table is added to IGV session
 			    GIEDatasetVersionLayer layer = GIE.getInstance().getActiveDataset().getCurrentVersion()
 				    .getActiveLayer();
-			    layer.save();
+			    layer.updateAndSave();
 
 			    GIE.getInstance().reloadActiveDataset();
 
@@ -689,7 +689,8 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	    delLay.setEnabled(false);
 
 	    renLay = new JButton("Rename Layer");
-	    renLay.setToolTipText("Rename this layer. Layer names have to unique within a dataset.");
+	    renLay.setToolTipText(
+		    "Rename this layer. Layer names have to unique within a dataset, the 'main' layer cannot be renamed.");
 	    renLay.setHorizontalAlignment(SwingConstants.LEFT);
 	    panel.add(renLay);
 	    renLay.addActionListener(new ActionListener() {
@@ -711,6 +712,20 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 		}
 	    });
 	    renLay.setEnabled(false);
+
+	    JButton layDesc = new JButton("Layer Description");
+	    layDesc.setToolTipText("<html><body>"
+		    + abbrv(GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer().getDescription(),
+			    100)
+		    + "</body></html>");
+	    layDesc.setHorizontalAlignment(SwingConstants.LEFT);
+	    panel.add(layDesc);
+	    layDesc.addActionListener(new ActionListener() {
+		public void actionPerformed(ActionEvent e) {
+		    new GIEEditDescriptionDialog(IGV.getMainFrame());
+		    refresh();
+		}
+	    });
 	}
 
 	columnNames = new ArrayList<>();
@@ -892,6 +907,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	    buttonPane.add(but);
 	    but.addActionListener(new ActionListener() {
 		public void actionPerformed(ActionEvent e) {
+		    GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer().updateAndSave();
 		    new GIEExportDialog(IGV.getMainFrame());
 		}
 
@@ -977,6 +993,15 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	// register for ROI updates
 	IGV.getInstance().getSession().getRegionsOfInterestObservable().addObserver(this);
 
+    }
+
+    private String abbrv(String txt, int max) {
+	if (txt == null)
+	    return "";
+	txt = txt.replaceAll("\n", "<br/>");
+	if (txt.length() < max)
+	    return txt;
+	return txt.substring(0, max) + "...";
     }
 
     @Override
@@ -1287,7 +1312,9 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 				    return;
 				String[] options = { "OK", "Cancel" };
 				final JComboBox<String> combo = new JComboBox<>(ll.toArray(new String[ll.size()]));
-				int selection = JOptionPane.showOptionDialog(null, combo, "Copy intervals to layer",
+				int selection = JOptionPane.showOptionDialog(null, combo,
+					selectedRegions.size() == 1 ? "Copy interval to layer"
+						: "Copy " + selectedRegions.size() + " intervals to layer",
 					JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, options,
 					options[0]);
 				if (selection == 0) {
@@ -1295,7 +1322,8 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 				    GIEDatasetVersionLayer targetLayer = GIE.getInstance().getActiveDataset()
 					    .getCurrentVersion().getLayers().get(tl);
 				    targetLayer.addRegions(selectedRegions);
-				    reloadTable();
+				    targetLayer.save();
+				    GIE.getInstance().reloadActiveDataset();
 				}
 			    }
 			}
@@ -1329,7 +1357,8 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 					    .getCurrentVersion().getLayers().get(tl);
 				    targetLayer.addRegions(selectedRegions);
 				    activeLayer.removeRegions(selectedRegions);
-				    reloadTable();
+				    targetLayer.save();
+				    GIE.getInstance().reloadActiveDataset();
 				}
 			    }
 			}

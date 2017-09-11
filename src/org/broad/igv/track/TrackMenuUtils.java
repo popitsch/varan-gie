@@ -1615,7 +1615,7 @@ public class TrackMenuUtils {
      * @return
      */
     public static JMenuItem getAddToGIEItem(final Track t, final Feature f) {
-	String mess = "Add to GIE...";
+	String mess = "Add to VARAN...";
 	JMenuItem item = new JMenuItem(mess);
 	item.addActionListener(new ActionListener() {
 
@@ -1642,7 +1642,7 @@ public class TrackMenuUtils {
      * @return
      */
     public static JMenuItem getAddVisibleToGIEItem(final Track t) {
-	String mess = "Add visible to GIE...";
+	String mess = "Add visible to current VARAN layer...";
 	JMenuItem item = new JMenuItem(mess);
 	item.addActionListener(new ActionListener() {
 
@@ -1667,7 +1667,8 @@ public class TrackMenuUtils {
 			    IGV.getInstance().getSession().addROI(newRoi, false, false);
 			}
 		    }
-		    System.out.println("Done.");
+		    // inform of updates
+		    IGV.getInstance().getSession().informListeners();
 		}
 	    }
 	});
@@ -1682,7 +1683,7 @@ public class TrackMenuUtils {
      * @return
      */
     public static JMenuItem getRemoveFromGIEItem(final Track t, final Feature f) {
-	String mess = "Remove from GIE...";
+	String mess = "Remove from current VARAN layer...";
 	JMenuItem item = new JMenuItem(mess);
 	item.addActionListener(new ActionListener() {
 
@@ -1702,7 +1703,7 @@ public class TrackMenuUtils {
      * @return
      */
     public static JMenuItem getReloadTrackItem(final Track t, final Feature f) {
-	String mess = "Reload GIE track...";
+	String mess = "Reload VARAN tracks...";
 	JMenuItem item = new JMenuItem(mess);
 	item.addActionListener(new ActionListener() {
 

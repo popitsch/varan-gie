@@ -145,7 +145,7 @@ public class GIEDatasetVersion {
 	    return false;
 
 	// save current layer
-	activeLayer.save();
+	activeLayer.updateAndSave();
 
 	// create new layer
 	layerName = layerName.trim();
@@ -172,7 +172,7 @@ public class GIEDatasetVersion {
 	}
 
 	// save current layer
-	this.activeLayer.save();
+	this.activeLayer.updateAndSave();
 
 	// set new active layer
 	this.activeLayer = layers.get(layerName);
@@ -270,7 +270,7 @@ public class GIEDatasetVersion {
     public void save() {
 	if (activeLayer == null)
 	    throw new RuntimeException("No active layer - cannot save");
-	activeLayer.save();
+	activeLayer.updateAndSave();
     }
 
     public List<File> getAllFiles() {

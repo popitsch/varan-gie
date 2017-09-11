@@ -167,7 +167,7 @@ public class RegionOfInterestPanel extends JPanel {
 
 	JPopupMenu popupMenu = new RegionMenu(roi, frame);
 
-	JMenuItem item = new JMenuItem("Select in GIE");
+	JMenuItem item = new JMenuItem("Select in VARAN");
 	item.addActionListener(new ActionListener() {
 	    public void actionPerformed(ActionEvent e) {
 		if (GIEDataDialog.getInstance().isVisible()) {

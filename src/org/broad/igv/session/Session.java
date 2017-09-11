@@ -312,6 +312,13 @@ public class Session implements IGVEventObserver {
     }
 
     /**
+     * Inform all listeners of changes.
+     */
+    public void informListeners() {
+	regionsOfInterestObservable.setChangedAndNotify();
+    }
+    
+    /**
      * WARNING! This method should never be used for update of the regions collection.
      * If this gets abused, this method could be changed to create a new Collection so that updates
      * have no effect on the real one.
