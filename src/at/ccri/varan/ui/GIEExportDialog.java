@@ -248,7 +248,7 @@ public class GIEExportDialog extends JDialog implements Observer, IGVEventObserv
 	formPanel.add(ucscBasic);
 
 	JCheckBox ucscNoHeader = new JCheckBox("Do not write header");
-	ucscNoHeader.setSelected(true);
+	ucscNoHeader.setSelected(false);
 	formPanel.add(new JLabel(""));
 	formPanel.add(ucscNoHeader);
 
