@@ -39,6 +39,7 @@ import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
@@ -47,6 +48,7 @@ import java.io.IOException;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -74,6 +76,7 @@ import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
@@ -528,6 +531,12 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	    renderer.addToolTip(tooltips[i]);
 	}
 	comboBox.setModel(model);
+	comboBox.registerKeyboardAction(new ActionListener() {
+	    @Override
+	    public void actionPerformed(ActionEvent e) {
+		copyRows();
+	    }
+	}, "Copy", KeyStroke.getKeyStroke(KeyEvent.VK_C, ActionEvent.CTRL_MASK, false), JComponent.WHEN_FOCUSED);
 	col.setCellEditor(new DefaultCellEditor(comboBox));
     }
 
@@ -537,10 +546,27 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
     public void copyRows() {
 	int[] selectedRows = table.getSelectedRows();
 	if (selectedRows.length > 0) {
-	    List<RegionOfInterest> selectedRegions = getSelectedRegions(selectedRows);
 	    StringBuilder sb = new StringBuilder();
-	    for (RegionOfInterest r : selectedRegions)
-		sb.append(r.toString() + "\n");
+	    for (int rowIndex : selectedRows) {
+		Enumeration<TableColumn> cols = table.getColumnModel().getColumns();
+		while (cols.hasMoreElements()) {
+		    TableColumn tc = cols.nextElement();
+		    switch (tc.getModelIndex()) {
+		    case COLIDX_View:
+		    case COLIDX_Del:
+			break;
+		    default:
+			sb.append(table.getModel().getValueAt(rowIndex, tc.getModelIndex()) + "\t");
+			break;
+		    }
+		}
+		sb.append("\n");
+	    }
+
+	    // List<RegionOfInterest> selectedRegions = getSelectedRegions(selectedRows);
+	    // StringBuilder sb = new StringBuilder();
+	    // for (RegionOfInterest r : selectedRegions)
+	    // sb.append(r.toString() + "\n");
 	    Clipboard clpbrd = Toolkit.getDefaultToolkit().getSystemClipboard();
 	    clpbrd.setContents(new StringSelection(sb.toString()), null);
 	}
@@ -841,6 +867,12 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	table.setRowSelectionAllowed(true);
 	table.setSelectionBackground(Color.red);
 	table.addMouseListener(new MyTablePopupHandler());
+	table.registerKeyboardAction(new ActionListener() {
+	    @Override
+	    public void actionPerformed(ActionEvent e) {
+		copyRows();
+	    }
+	}, "Copy", KeyStroke.getKeyStroke(KeyEvent.VK_C, ActionEvent.CTRL_MASK, false), JComponent.WHEN_FOCUSED);
 
 	// configure strand input
 	setUpComboColumn(table, table.getColumnModel().getColumn(COLIDX_Strand), new String[] { "0", "+", "-" },

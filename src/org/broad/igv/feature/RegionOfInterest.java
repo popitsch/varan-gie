@@ -348,5 +348,5 @@ public class RegionOfInterest implements Comparable<RegionOfInterest> {
     public String toString() {
 	return chr + ":" + start + "-" + end;
     }
-
+    
 }
