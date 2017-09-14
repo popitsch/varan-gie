@@ -72,6 +72,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import org.broad.igv.ui.IGV;
 
 import at.ccri.varan.GIE;
+import at.ccri.varan.util.SpringUtilities;
 
 /**
  * @author niko.popitsch

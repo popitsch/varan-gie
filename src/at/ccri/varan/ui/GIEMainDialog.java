@@ -50,6 +50,8 @@ import java.util.Observer;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -62,6 +64,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.ListSelectionModel;
+import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.WindowConstants;
@@ -299,8 +302,8 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 
 	// cat selection panel
 	JPanel catPanel = new JPanel();
-	catPanel.setLayout(new BorderLayout());
-	catPanel.add(new JLabel("Filter Category"), BorderLayout.NORTH);
+	catPanel.setLayout(new BoxLayout(catPanel, BoxLayout.PAGE_AXIS));
+	catPanel.add(new JLabel("Filter By Category"), Component.RIGHT_ALIGNMENT);
 	DefaultComboBoxModel<String> comboModel = new DefaultComboBoxModel<>();
 	comboModel.addElement(FILTER_SHOW_ALL);
 	for (String cat : GIE.getInstance().getCategories())
@@ -315,16 +318,20 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 	    }
 
 	});
-	catPanel.add(catCombo, BorderLayout.CENTER);
+	catPanel.add(catCombo,Component.RIGHT_ALIGNMENT);
+	catPanel.add(Box.createVerticalStrut(30));
 	testActionListenerActive = true;
 
 	// dataset description panel
+	
 	JPanel descPanel = new JPanel();
 	descPanel.setLayout(new BorderLayout());
-	this.descr = new JTextArea(3, 50);
-	descr.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1, true),
-		"Description"));
-	descPanel.add(this.descr, BorderLayout.CENTER);
+	descr = new JTextArea(3, 55);
+	JScrollPane sp = new JScrollPane(descr); 
+	sp.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1, true),
+	"Description"));
+	sp.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+	descPanel.add(sp, BorderLayout.CENTER);
 	descr.addFocusListener(new FocusListener() {
 
 	    @Override
@@ -340,9 +347,9 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 	});
 
 	// TOP PANEL: descr + cat selection
-	JPanel topPanel = new JPanel(new FlowLayout());
-	topPanel.add(descPanel);
-	topPanel.add(catPanel);
+	JPanel topPanel = new JPanel(new BorderLayout());
+	topPanel.add(descPanel, BorderLayout.WEST);
+	topPanel.add(catPanel, BorderLayout.EAST);
 	contentPanel.add(topPanel, BorderLayout.PAGE_START);
 
 	/**

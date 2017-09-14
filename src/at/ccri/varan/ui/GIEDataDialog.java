@@ -740,10 +740,12 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	    renLay.setEnabled(false);
 
 	    JButton layDesc = new JButton("Layer Description");
-	    layDesc.setToolTipText("<html><body>"
-		    + abbrv(GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer().getDescription(),
-			    100)
-		    + "</body></html>");
+	    if (GIE.getInstance().getActiveDataset() != null
+		    && GIE.getInstance().getActiveDataset().getCurrentVersion() != null
+		    && GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer() != null)
+		layDesc.setToolTipText("<html><body>" + abbrv(
+			GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer().getDescription(), 100)
+			+ "</body></html>");
 	    layDesc.setHorizontalAlignment(SwingConstants.LEFT);
 	    panel.add(layDesc);
 	    layDesc.addActionListener(new ActionListener() {
@@ -1253,6 +1255,73 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 		    popupMenu.add(copyItem);
 
 		    popupMenu.addSeparator();
+
+		    JMenuItem addUpBPItem = new JMenuItem("Add/subtract X bp upstream");
+		    addUpBPItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+			    int[] selectedRows = table.getSelectedRows();
+			    if (selectedRows.length > 0) {
+				List<RegionOfInterest> selectedRegions = getSelectedRegions(selectedRows);
+				String tmp = JOptionPane.showInputDialog(null,
+					"<html><body>" + "BP to add to min coordinate</br>"
+						+ "(use negative integer to extend interval upstream):</body></html>",
+					"0");
+				if (tmp != null) {
+				    int inc = Integer.parseInt(tmp);
+				    for (RegionOfInterest r : selectedRegions) {
+					r.setStart(Math.max(0, r.getStart() + inc));
+				    }
+				    Iterator<RegionOfInterest> delit = IGV.getInstance().getSession()
+					    .getAllRegionsOfInterest().iterator();
+				    while (delit.hasNext()) {
+					RegionOfInterest r = delit.next();
+					if (r.getRange().getLength() <= 0)
+					    delit.remove();
+				    }
+				    List<RegionOfInterest> now = (List<RegionOfInterest>) IGV.getInstance().getSession()
+					    .getAllRegionsOfInterest();
+				    UndoHandler.getInstance().addUndoStep(now);
+				    reloadTable();
+				    IGV.getInstance().getSession().informListeners();
+				    IGV.getInstance().repaint();
+				}
+			    }
+			}
+		    });
+		    popupMenu.add(addUpBPItem);
+
+		    JMenuItem addDownBPItem = new JMenuItem("Add/subtract X bp downstream");
+		    addDownBPItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+			    int[] selectedRows = table.getSelectedRows();
+			    if (selectedRows.length > 0) {
+				List<RegionOfInterest> selectedRegions = getSelectedRegions(selectedRows);
+				String tmp = JOptionPane.showInputDialog(null,
+					"<html><body>" + "BP to add to max coordinate</br>"
+						+ "(use positive integer to extend interval downstream):</body></html>",
+					"0");
+				if (tmp != null) {
+				    int inc = Integer.parseInt(tmp);
+				    for (RegionOfInterest r : selectedRegions)
+					r.setEnd(Math.max(0, r.getEnd() + inc));
+				    Iterator<RegionOfInterest> delit = IGV.getInstance().getSession()
+					    .getAllRegionsOfInterest().iterator();
+				    while (delit.hasNext()) {
+					RegionOfInterest r = delit.next();
+					if (r.getRange().getLength() <= 0)
+					    delit.remove();
+				    }
+				    List<RegionOfInterest> now = (List<RegionOfInterest>) IGV.getInstance().getSession()
+					    .getAllRegionsOfInterest();
+				    UndoHandler.getInstance().addUndoStep(now);
+				    reloadTable();
+				    IGV.getInstance().getSession().informListeners();
+				    IGV.getInstance().repaint();
+				}
+			    }
+			}
+		    });
+		    popupMenu.add(addDownBPItem);
 
 		    JMenuItem setScoreItem = new JMenuItem("Set Score of Selected (use '-' for null score)");
 		    setScoreItem.addActionListener(new ActionListener() {

@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
+import java.util.zip.GZIPInputStream;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -66,6 +67,7 @@ import org.broad.igv.feature.genome.GenomeManager;
 import org.broad.igv.ui.IGV;
 
 import at.ccri.varan.GIE;
+import at.ccri.varan.util.SpringUtilities;
 
 /**
  * @author niko.popitsch
@@ -174,8 +176,13 @@ public class GIEAddIntervalDialog extends JDialog implements Observer, IGVEventO
 		    BufferedReader reader = null;
 		    StringBuffer sb = new StringBuffer();
 		    try {
-			reader = new BufferedReader(new InputStreamReader(new FileInputStream(f)));
-
+			
+			if (f.getName().endsWith(".gz"))
+			    reader = new BufferedReader(
+				    new InputStreamReader(new GZIPInputStream(new FileInputStream(f))));
+			else
+			    reader = new BufferedReader(new InputStreamReader(new FileInputStream(f)));
+			
 			String nextLine;
 
 			int c = 0;

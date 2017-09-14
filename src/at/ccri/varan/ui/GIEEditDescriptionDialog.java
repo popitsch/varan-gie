@@ -50,6 +50,7 @@ import javax.swing.WindowConstants;
 import org.broad.igv.ui.IGV;
 
 import at.ccri.varan.GIE;
+import at.ccri.varan.util.SpringUtilities;
 
 /**
  * GIE edit description dialog.

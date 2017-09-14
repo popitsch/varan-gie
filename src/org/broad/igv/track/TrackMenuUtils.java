@@ -114,6 +114,8 @@ import com.google.common.collect.Lists;
 
 import at.ccri.varan.GIE;
 import at.ccri.varan.ui.TrackGrid;
+import at.ccri.varan.ui.UndoHandler;
+import at.ccri.varan.util.IntervalTools;
 import htsjdk.tribble.Feature;
 
 /**
@@ -1653,22 +1655,28 @@ public class TrackMenuUtils {
 
 		    FeatureTrack ft = (FeatureTrack) t;
 		    List<Feature> fs = ft.getVisibleFeatures(FrameManager.getDefaultFrame());
-		    System.out.print("Adding " + fs.size() + " features...");
-		    for (Feature f : fs) {
-			RegionOfInterest newRoi = new RegionOfInterest(f.getContig(), f.getStart(), f.getEnd(), null);
-			if (newRoi.getRange().overlaps(visible)) {
-			    if (f instanceof IGVFeature) {
-				IGVFeature igvf = (IGVFeature) f;
-				newRoi.setDescription(igvf.getName());
-				if (!Double.isNaN(igvf.getScore()))
-				    newRoi.setScore((int) igvf.getScore() + "");
-				newRoi.setStrand(igvf.getStrand());
-			    }
-			    IGV.getInstance().getSession().addROI(newRoi, false, false);
+		    if (IntervalTools.isOverlapping(fs)) {
+			int dialogResult = JOptionPane.showConfirmDialog(null,
+				"<html></body>The selected section contains overlapping intervals that cannot be<br/>"
+					+ "added to a single VARAN layer. Do you want to merge these intervals and then add?</body></html>",
+				"Warning", JOptionPane.YES_NO_OPTION);
+			if (dialogResult != JOptionPane.YES_OPTION) {
+			    return;
 			}
 		    }
+
+		    
+		    List<RegionOfInterest> toadd = IntervalTools.feature2roi(fs, visible);
+		    for ( RegionOfInterest r : toadd)
+			 IGV.getInstance().getSession().addROI(r, false, false);
+		    // add undo step
+		    List<RegionOfInterest> now = (List<RegionOfInterest>) IGV.getInstance().getSession()
+			    .getAllRegionsOfInterest();
+		    UndoHandler.getInstance().addUndoStep(now);
 		    // inform of updates
 		    IGV.getInstance().getSession().informListeners();
+		    IGV.getInstance().repaint();
+		    
 		}
 	    }
 	});

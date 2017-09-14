@@ -52,6 +52,7 @@ import org.broad.igv.ui.IGV;
 
 import at.ccri.varan.GIE;
 import at.ccri.varan.GIEAnnotationTrack;
+import at.ccri.varan.util.SpringUtilities;
 
 /**
  * GIE "add annotation track" dialog.

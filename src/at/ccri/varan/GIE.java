@@ -93,7 +93,7 @@ public class GIE {
     /**
      * GIE Version
      */
-    public static final String VERSION = "0.2.1";
+    public static final String VERSION = "0.2.3";
 
     public static final String AUTHORS = "niko.popitsch@ccri.at";
 
@@ -562,6 +562,7 @@ public class GIE {
 	    log.error("Cannot rename dataset '" + oldKey + "' to '" + newKey + "'.");
 	    return false;
 	}
+	// FIXME: also rename data files.
 	GIEDataset obj = datasets.remove(oldKey);
 	obj.setName(newKey);
 	datasets.put(newKey, obj);
@@ -580,9 +581,12 @@ public class GIE {
 
 	try {
 
-	    if (orig != null && !orig.exists()) {
-		log.error("Dataset file " + orig + " not found!");
-		return false;
+	    if (orig != null) {
+		if (!orig.exists()) {
+		    log.error("Dataset file " + orig + " not found!");
+		    return false;
+		}
+		log.info("Loading intervals from " + orig);
 	    }
 
 	    if (datasetName == null || datasetName.equals("")) {
@@ -596,12 +600,8 @@ public class GIE {
 		return false;
 	    }
 
-	    save();
-	    IGV.getInstance().newSession();
-	    IGV.getInstance().clearRegionsOfInterest();
-
-	    activeDataset = new GIEDataset(datasetName, description, orig, annotations);
-	    datasets.put(datasetName, activeDataset);
+	    GIEDataset ds = new GIEDataset(datasetName, description, orig, annotations);
+	    datasets.put(datasetName, ds);
 	    log.info("Added dataset " + datasetName);
 	    return true;
 	} catch (UnsupportedEncodingException e1) {
@@ -1262,7 +1262,7 @@ public class GIE {
      * Export data to UCSC file
      * 
      * @param file
-     * @throws IOException 
+     * @throws IOException
      */
     public boolean export2tsv(Collection<RegionOfInterest> intervals, File outFile, String name, String description,
 	    boolean prefixChr, boolean exportOnlyBasic, boolean noHeader, String[] annotations) {
@@ -1295,7 +1295,7 @@ public class GIE {
 			String line = null;
 			try {
 			    while ((line = reader.readLine()) != null) {
-			        out.println("#" + line);
+				out.println("#" + line);
 			    }
 			} catch (IOException e) {
 			    e.printStackTrace();

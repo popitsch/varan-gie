@@ -72,7 +72,7 @@ public class GIEAnnotationTrack {
 	if (getDataFile().getAbsolutePath().toLowerCase().endsWith(".bed")
 		|| getDataFile().getAbsolutePath().toLowerCase().endsWith(".bed.gz")) {
 	    /**
-	     * Count number iof BED intervals
+	     * Count number of BED intervals
 	     */
 	    BufferedReader reader = null;
 	    try {

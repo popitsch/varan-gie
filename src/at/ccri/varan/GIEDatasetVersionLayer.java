@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.zip.GZIPInputStream;
 
 import javax.swing.JOptionPane;
 
@@ -123,8 +124,12 @@ public class GIEDatasetVersionLayer {
 	regions = new TreeSet<>();
 	if (inFile.exists())
 	    try {
-		FileInputStream fileInput = new FileInputStream(inFile);
-		BufferedReader reader = new BufferedReader(new InputStreamReader(fileInput));
+		BufferedReader reader;
+		if (inFile.getName().endsWith(".gz"))
+		    reader = new BufferedReader(
+			    new InputStreamReader(new GZIPInputStream(new FileInputStream(inFile))));
+		else
+		    reader = new BufferedReader(new InputStreamReader(new FileInputStream(inFile)));
 		String nextLine;
 		while ((nextLine = reader.readLine()) != null && (nextLine.trim().length() > 0)) {
 		    String[] t = nextLine.split("\t");
@@ -149,6 +154,7 @@ public class GIEDatasetVersionLayer {
 		e.printStackTrace();
 	    }
 
+	// load only if this layer is active
 	if (GIE.getInstance().getActiveDataset() != null
 		&& GIE.getInstance().getActiveDataset().getCurrentVersion() != null
 		&& GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer() != null
@@ -190,7 +196,7 @@ public class GIEDatasetVersionLayer {
      */
     public SortedSet<RegionOfInterest> importAndLoad(File importLayerFile) throws IOException {
 	// import layer data / copy and normalize file.
-
+	
 	BufferedReader reader = null;
 	PrintWriter out = null;
 	try {
@@ -198,7 +204,12 @@ public class GIEDatasetVersionLayer {
 	    out.println("track name=\"" + getVersion().getDataset().getName() + "." + getVersion().getVersionName()
 		    + "." + layerName + "\" description=\"GIE data track\" visibility=1 useScore=1 itemRgb=\"On\"");
 	    if (importLayerFile != null) {
-		reader = new BufferedReader(new InputStreamReader(new FileInputStream(importLayerFile)));
+		if (importLayerFile.getName().endsWith(".gz"))
+		    reader = new BufferedReader(
+			    new InputStreamReader(new GZIPInputStream(new FileInputStream(importLayerFile))));
+		else
+		    reader = new BufferedReader(new InputStreamReader(new FileInputStream(importLayerFile)));
+
 		String nextLine;
 		int c = 0;
 		Genome g = GenomeManager.getInstance().getCurrentGenome();
@@ -235,6 +246,13 @@ public class GIEDatasetVersionLayer {
 		    }
 		}
 	    }
+	} catch (Exception e) {
+	    // delete outfile
+	    if (out != null) {
+		out.close();
+		out = null;
+	    }
+	    dataFile.delete();
 	} finally {
 	    if (out != null)
 		out.close();

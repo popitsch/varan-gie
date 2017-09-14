@@ -54,12 +54,9 @@ public class GIEDataset {
 	currentVersion = new GIEDatasetVersion(this, description, GIE.defaultAuthor, defaultVersionTag, annotations);
 	versions.put(defaultVersionTag, currentVersion);
 
-	// import data ?
+	// import data and load dataset
 	this.orig = orig;
-	if (orig != null)
-	    currentVersion.getActiveLayer().importAndLoad(orig);
-	else
-	    currentVersion.getActiveLayer().load();
+	currentVersion.getActiveLayer().importAndLoad(orig);
     }
 
     public File getOrig() {
