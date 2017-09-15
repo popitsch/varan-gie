@@ -796,10 +796,6 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 		if (r == null)
 		    return;
 
-		List<RegionOfInterest> now = (List<RegionOfInterest>) IGV.getInstance().getSession()
-			.getAllRegionsOfInterest();
-		UndoHandler.getInstance().addUndoStep(now);
-
 		switch (col) {
 		case COLIDX_Chr:
 		    r.setChr(v);
@@ -811,22 +807,29 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 		case COLIDX_Width:
 		    try {
 			Integer w = parseIntervalWidth(v);
-			r.setEnd(r.getStart() + Math.abs(w));
-			super.setValueAt(r.getEnd(), row, COLIDX_End);
-			super.setValueAt(getIntervalWidth(r.getEnd() - r.getStart()), row, COLIDX_Width);
+			// close region
+			RegionOfInterest mod = r.deepClone();
+			mod.setEnd(r.getStart() + Math.abs(w));
+			IGV.getInstance().updateROI(r, mod);
+			super.setValueAt(mod.getEnd(), row, COLIDX_End);
+			super.setValueAt(getIntervalWidth(mod.getEnd() - mod.getStart()), row, COLIDX_Width);
 		    } catch (ParseException ex) {
 			JOptionPane.showMessageDialog(IGV.getMainFrame(), "Parsing Error " + ex.getMessage(), "Error",
 				JOptionPane.ERROR_MESSAGE);
 		    }
 		    break;
 		case COLIDX_Start:
-		    r.setStart(CanonicalChromsomeComparator.parseCoordinate(r.getChr(), r.getStart(), v));
-		    super.setValueAt(getIntervalWidth(r.getEnd() - r.getStart()), row, COLIDX_Width);
+		    RegionOfInterest mod = r.deepClone();
+		    mod.setStart(CanonicalChromsomeComparator.parseCoordinate(r.getChr(), r.getStart(), v));
+		    IGV.getInstance().updateROI(r, mod);
+		    super.setValueAt(getIntervalWidth(mod.getEnd() - mod.getStart()), row, COLIDX_Width);
 		    super.setValueAt(v, row, col);
 		    break;
 		case COLIDX_End:
-		    r.setEnd(CanonicalChromsomeComparator.parseCoordinate(r.getChr(), r.getEnd(), v));
-		    super.setValueAt(getIntervalWidth(r.getEnd() - r.getStart()), row, COLIDX_Width);
+		    mod = r.deepClone();
+		    mod.setEnd(CanonicalChromsomeComparator.parseCoordinate(r.getChr(), r.getEnd(), v));
+		    IGV.getInstance().updateROI(r, mod);
+		    super.setValueAt(getIntervalWidth(mod.getEnd() - mod.getStart()), row, COLIDX_Width);
 		    super.setValueAt(v, row, col);
 		    break;
 		case COLIDX_Name:
@@ -849,6 +852,10 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 		    r.addAnnotation(columnNames.get(col), v);
 		    super.setValueAt(value, row, col);
 		}
+
+		List<RegionOfInterest> now = (List<RegionOfInterest>) IGV.getInstance().getSession()
+			.getAllRegionsOfInterest();
+		UndoHandler.getInstance().addUndoStep(now);
 
 		fireTableCellUpdated(row, col);
 		repaint();

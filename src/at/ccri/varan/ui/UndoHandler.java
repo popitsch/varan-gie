@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Stack;
 
 import org.broad.igv.feature.RegionOfInterest;
+import org.broad.igv.ui.util.ReorderableJList;
 
 /**
  * undo handler singleton. Stores stacks of added/removed intervals.
@@ -18,6 +19,11 @@ public class UndoHandler {
     Stack<List<RegionOfInterest>> removed = new Stack<>();
     List<RegionOfInterest> previous = null;
 
+    Stack<List<RegionOfInterest>> redoAdded = new Stack<>();
+    Stack<List<RegionOfInterest>> redoRemoved = new Stack<>();
+    List<RegionOfInterest> lastRedoAdded = new ArrayList<>();
+    List<RegionOfInterest> lastRedoRemoved = new ArrayList<>();
+    
     private static UndoHandler instance;
 
     private UndoHandler() {
@@ -33,7 +39,7 @@ public class UndoHandler {
     public void addUndoStep(List<RegionOfInterest> now) {
 	List<RegionOfInterest> toadd = new ArrayList<>();
 	List<RegionOfInterest> todel = new ArrayList<>();
-
+	
 	if (previous == null) {
 	    toadd = now;
 	} else {
@@ -49,7 +55,12 @@ public class UndoHandler {
 	if (toadd.size() > 0 || todel.size() > 0) {
 	    added.add(toadd);
 	    removed.add(todel);
-//	     System.out.println("UNDO a[" + toadd + "] d[" + todel + "]");
+	    // clear redo buffeers unless last action was redo.
+	    if ( ! (lastRedoAdded.equals(toadd) && lastRedoRemoved.equals(todel))) {
+		redoAdded.clear();
+		redoRemoved.clear();
+	    }
+	    
 	}
     }
 
@@ -71,12 +82,52 @@ public class UndoHandler {
 	previous.removeAll(todel);
 	previous.addAll(toadd);
 
+	redoAdded.push(todel);
+	redoRemoved.push(toadd);
+
 	return previous;
     }
 
+    /**
+     * redo a step.
+     * 
+     * @return
+     */
+    public List<RegionOfInterest> redo() {
+	if (redoAdded.isEmpty())
+	    return previous;
+	
+	List<RegionOfInterest> todel = redoRemoved.pop();
+	List<RegionOfInterest> toadd = redoAdded.pop();
+
+	lastRedoAdded = toadd;
+	lastRedoRemoved = todel;
+//	
+//	
+//	System.out.println("REDO " + todel + " / " + toadd + " / " + previous);
+//	
+	if (todel == null || toadd == null)
+	    return null;
+
+	previous.removeAll(todel);
+	previous.addAll(toadd);
+
+	
+	added.push(toadd);
+	removed.push(todel);
+	
+	
+	return previous;
+    }
+    
+    
     public void clear() {
 	added.clear();
 	removed.clear();
+	redoAdded.clear();
+	redoRemoved.clear();
+	lastRedoAdded.clear();
+	lastRedoRemoved.clear();
     }
 
     public boolean isEmpty() {

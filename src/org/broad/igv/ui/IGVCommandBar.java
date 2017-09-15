@@ -129,6 +129,7 @@ public class IGVCommandBar extends javax.swing.JPanel implements IGVEventObserve
     private JideToggleButton roiClipToggleButton;
     private JideToggleButton roiMergeToggleButton;
     private JideButton undoButton;
+    private JideButton redoButton;
     private JideButton detailsBehaviorButton;
     private JideToggleButton rulerLineButton;
     private JTextField searchTextField;
@@ -789,6 +790,21 @@ public class IGVCommandBar extends javax.swing.JPanel implements IGVEventObserve
 	    }
 	});
 	toolPanel.add(undoButton, JideBoxLayout.FIX);
+	
+	Icon redoRegionOfInterestIcon = IconFactory.getInstance().getIcon(IconFactory.IconID.REDO_REGION_OF_INTEREST);
+	redoButton = new JideButton(redoRegionOfInterestIcon);
+	redoButton.setAlignmentX(RIGHT_ALIGNMENT);
+	redoButton.setToolTipText("Redo VARAN changes (CTRL-Y).");
+	redoButton.setMaximumSize(new java.awt.Dimension(32, 32));
+	redoButton.setMinimumSize(new java.awt.Dimension(32, 32));
+	redoButton.setPreferredSize(new java.awt.Dimension(32, 32));
+	redoButton.addActionListener(new java.awt.event.ActionListener() {
+
+	    public void actionPerformed(java.awt.event.ActionEvent evt) {
+		IGV.getInstance().getSession().replaceRegionsOfInterest(UndoHandler.getInstance().redo());
+	    }
+	});
+	toolPanel.add(redoButton, JideBoxLayout.FIX);
 
 	fitToWindowButton = new JideButton();
 	// fitToWindowButton.setButtonStyle(JideButton.TOOLBOX_STYLE);

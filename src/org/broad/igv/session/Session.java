@@ -344,6 +344,7 @@ public class Session implements IGVEventObserver {
 	    roiList.addAll(regionsOfInterest.get(chr));
 	return roiList;
     }
+    
 
     /**
      * Removes the regions of interest. returns global success/failure.
@@ -353,14 +354,38 @@ public class Session implements IGVEventObserver {
      * @param rois
      * @return whether all specified regions were found for removal
      */
+    public boolean updateROI(RegionOfInterest oldr, RegionOfInterest newr) {
+	boolean result = true;
+	Collection<RegionOfInterest> roiList = regionsOfInterest.get(oldr.getChr());
+	if (roiList != null) {
+	    result = result && roiList.remove(oldr);
+	}
+	// notify all observers that regions have changed.
+	regionsOfInterestObservable.setChangedAndNotify();
+	return result;
+    }
+
+
     public boolean removeROI(RegionOfInterest roi) {
+	return removeROI(roi, true);
+    }
+    
+    /**
+     * Removes the regions of interest. returns global success/failure.
+     * This method to remove multiple regions at once exists because, if you do them one at a time,
+     * it throws the RegionNavigatorDialog table rows off.
+     *
+     * @param rois
+     * @return whether all specified regions were found for removal
+     */
+    public boolean removeROI(RegionOfInterest roi, boolean informListeners) {
 	boolean result = true;
 	Collection<RegionOfInterest> roiList = regionsOfInterest.get(roi.getChr());
 	if (roiList != null) {
 	    result = result && roiList.remove(roi);
 	}
 	// notify all observers that regions have changed.
-	regionsOfInterestObservable.setChangedAndNotify();
+	if ( informListeners) regionsOfInterestObservable.setChangedAndNotify();
 	return result;
     }
 

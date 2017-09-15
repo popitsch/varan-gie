@@ -47,6 +47,7 @@ public class IconFactory {
         CLIP_REGION_OF_INTEREST,
         MERGE_REGION_OF_INTEREST,
         UNDO_REGION_OF_INTEREST,
+        REDO_REGION_OF_INTEREST,
         NO_TOOLTIP,
         TOOLTIP,
         SEARCH,
@@ -103,6 +104,8 @@ public class IconFactory {
                 createImageIcon("/images/mergeRegionTool.png", "merge region of interest"));
         icons.put(IconID.UNDO_REGION_OF_INTEREST,
                 createImageIcon("/images/undoRegionTool.png", "undo region of interest change"));
+        icons.put(IconID.REDO_REGION_OF_INTEREST,
+                createImageIcon("/images/redoRegionTool.png", "redo region of interest change"));
         icons.put(IconID.REFRESH,
                 createImageIcon("/toolbarButtonGraphics/general/Refresh24.gif", "refresh"));
         icons.put(IconID.HOME,

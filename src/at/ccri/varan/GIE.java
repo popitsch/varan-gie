@@ -76,6 +76,7 @@ import at.ccri.varan.ui.CanonicalChromsomeComparator;
 import at.ccri.varan.ui.GIEDataDialog;
 import at.ccri.varan.ui.GIEMainDialog;
 import at.ccri.varan.ui.GIEPathMapDialog;
+import at.ccri.varan.ui.UndoHandler;
 
 /**
  * Main GIE singleton.
@@ -522,8 +523,8 @@ public class GIE {
 			    GIEDataDialog.destroyInstance();
 			}
 			GIEDataDialog.getInstance(IGV.getMainFrame());
-
-			log.info("Loaded dataset" + ds.getName());
+			
+			log.info("Loaded dataset" + ds.getName() );
 
 		    } finally {
 			if (progressDialog != null) {
@@ -533,6 +534,8 @@ public class GIE {
 			GIEDataDialog.blockReload = false;
 			if (GIEDataDialog.getInstance() != null)
 			    GIEDataDialog.getInstance().refresh();
+			
+			UndoHandler.getInstance().clear(); // no undo beyond load.
 		    }
 		}
 	    };

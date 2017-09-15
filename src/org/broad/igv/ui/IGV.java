@@ -503,6 +503,17 @@ public class IGV implements IGVEventObserver {
 	doRefresh();
     }
 
+    public void updateROI(RegionOfInterest oldr, RegionOfInterest newr) {
+   	session.removeROI(oldr, false);
+   	session.addROI(newr, false, true);
+   	doRefresh();
+       }
+
+    public void removeROI(RegionOfInterest roi) {
+	session.removeROI(roi);
+	doRefresh();
+    }
+
     public void addROI(RegionOfInterest roi) {
 	session.addROI(roi, false, true);
 	RegionOfInterestPanel.setSelectedRegion(roi);

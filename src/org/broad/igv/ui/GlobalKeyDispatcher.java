@@ -494,6 +494,18 @@ public class GlobalKeyDispatcher implements KeyEventDispatcher {
 	inputMap.put(undoKey, "undo");
 	actionMap.put("undo", undoAction);
 
+
+	// REDO
+	final KeyStroke redoKey = KeyStroke.getKeyStroke(KeyEvent.VK_Y, KeyEvent.CTRL_DOWN_MASK, false);
+	final Action redoAction = new AbstractAction() {
+	    @Override
+	    public void actionPerformed(ActionEvent e) {
+		IGV.getInstance().getSession().replaceRegionsOfInterest(UndoHandler.getInstance().redo());
+	    }
+	};
+	inputMap.put(redoKey, "redo");
+	actionMap.put("redo", redoAction);
+
 	
 	// Show/Hide reference lines
 	final KeyStroke toggleRefLineKey = KeyStroke.getKeyStroke(KeyEvent.VK_H, KeyEvent.CTRL_DOWN_MASK, false);

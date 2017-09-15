@@ -535,7 +535,6 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 		GIE.getInstance().loadDataset(k, v);
 		reloadTable();
 		table.repaint();
-		UndoHandler.getInstance().clear(); // no undo beyond load.
 		if (GIE.getInstance().getActiveDataset() != null)
 		    descr.setText(GIE.getInstance().getActiveDataset().getCurrentVersion().getDescription());
 	    }
