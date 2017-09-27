@@ -95,7 +95,7 @@ public class GIENewDatasetDialog extends JDialog {
 
     // category text field + autocompletion
     private JTextField textField0;
-    private AutoCompletionListener autoComplete;
+    private AutoCompletionListener autoComplete = new AutoCompletionListener(textField0, GIE.getInstance().getCategories());
 
     public GIENewDatasetDialog(Frame owner) {
 	super(owner, "New Dataset", true);
@@ -156,19 +156,16 @@ public class GIENewDatasetDialog extends JDialog {
 	// category
 	JLabel l1 = new JLabel("Category", JLabel.TRAILING);
 	textField0 = new JTextField(20);
-	// autocompletion with all categoriesO
-	autoComplete = new AutoCompletionListener(textField0, GIE.getInstance().getCategories());
-
 	l1.setLabelFor(textField0);
 	formPanel.add(l1);
 	formPanel.add(textField0);
 
 	// name
 	JLabel l2 = new JLabel("Name", JLabel.TRAILING);
-	JTextField textField = new JTextField(20);
-	l2.setLabelFor(textField);
+	JTextField textField1 = new JTextField(20);
+	l2.setLabelFor(textField1);
 	formPanel.add(l2);
-	formPanel.add(textField);
+	formPanel.add(textField1);
 
 	// descr
 	JLabel l3 = new JLabel("Description", JLabel.TRAILING);
@@ -198,11 +195,11 @@ public class GIENewDatasetDialog extends JDialog {
 		    File f = fc.getSelectedFile();
 		    GIE.getInstance().setLastAccessedDirectory("GIENewDatasetDialog", f.getParentFile());
 		    textField2.setText(f.getAbsolutePath());
-		    if (textField.getText().equals("")) {
+		    if (textField1.getText().equals("")) {
 			String name = f.getName();
 			if (name.lastIndexOf(".") >= 0)
 			    name = name.substring(0, name.lastIndexOf("."));
-			textField.setText(name);
+			textField1.setText(name);
 		    }
 		}
 	    }
@@ -374,7 +371,8 @@ public class GIENewDatasetDialog extends JDialog {
 	    public void actionPerformed(ActionEvent e) {
 
 		// create dataset
-		String name = textField.getText();
+		String category = textField0.getText();
+		String name = textField1.getText();
 		String description = textArea.getText();
 		File file = textField2.getText().trim().equals("") ? null : new File(textField2.getText());
 		List<String> annotations = new ArrayList<>();
@@ -382,7 +380,7 @@ public class GIENewDatasetDialog extends JDialog {
 		    annotations.add(listModel.elementAt(i));
 		boolean ok = false;
 		try {
-		    ok = GIE.getInstance().addDataset(name, description,
+		    ok = GIE.getInstance().addDataset(category, name, description,
 			    annotations.toArray(new String[annotations.size()]), file);
 		} catch (IOException e1) {
 		    e1.printStackTrace();

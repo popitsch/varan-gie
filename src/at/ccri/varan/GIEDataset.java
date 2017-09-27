@@ -46,8 +46,9 @@ public class GIEDataset {
     public GIEDataset() {
     }
 
-    public GIEDataset(String datasetName, String description, File orig, String[] annotations) throws IOException {
+    public GIEDataset(String category, String datasetName, String description, File orig, String[] annotations) throws IOException {
 
+	this.category = category;
 	this.name = datasetName;
 
 	// create initial version

@@ -72,12 +72,12 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.google.gson.reflect.TypeToken;
 
-import at.ccri.varan.ui.CanonicalChromsomeComparator;
 import at.ccri.varan.ui.GIEDataDialog;
 import at.ccri.varan.ui.GIEMainDialog;
 import at.ccri.varan.ui.GIEPathMapDialog;
 import at.ccri.varan.ui.GIERowFilter;
 import at.ccri.varan.ui.UndoHandler;
+import at.ccri.varan.util.CanonicalChromsomeComparator;
 
 /**
  * Main GIE singleton.
@@ -153,6 +153,11 @@ public class GIE {
      * Filter for the data table
      */
     GIERowFilter rowFilter = new GIERowFilter();
+    
+    /**
+     * Whether or not the useFilter checkbox is selected.
+     */
+    boolean useFilter;
     
     /**
      * GIE annotation tracks
@@ -585,7 +590,7 @@ public class GIE {
      * @throws IOException
      * 
      */
-    public boolean addDataset(String datasetName, String description, String[] annotations, File orig)
+    public boolean addDataset(String category, String datasetName, String description, String[] annotations, File orig)
 	    throws IOException {
 
 	try {
@@ -609,7 +614,7 @@ public class GIE {
 		return false;
 	    }
 
-	    GIEDataset ds = new GIEDataset(datasetName, description, orig, annotations);
+	    GIEDataset ds = new GIEDataset(category, datasetName, description, orig, annotations);
 	    datasets.put(datasetName, ds);
 	    log.info("Added dataset " + datasetName);
 	    return true;
@@ -1369,6 +1374,14 @@ public class GIE {
 
     public void setRowFilter(GIERowFilter rowFilter) {
         this.rowFilter = rowFilter;
+    }
+
+    public boolean isUseFilter() {
+        return useFilter;
+    }
+
+    public void setUseFilter(boolean useFilter) {
+        this.useFilter = useFilter;
     }
 
     public static void main(String[] args) {

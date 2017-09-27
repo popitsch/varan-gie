@@ -48,6 +48,7 @@ import java.io.IOException;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -107,6 +108,7 @@ import org.broad.igv.ui.panel.IGVPopupMenu;
 import at.ccri.varan.GIE;
 import at.ccri.varan.GIEDatasetVersion;
 import at.ccri.varan.GIEDatasetVersionLayer;
+import at.ccri.varan.util.CanonicalChromsomeComparator;
 
 /**
  * @author niko.popitsch
@@ -187,6 +189,11 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
      */
     private JColorChooser colorChooser = new JColorChooser();
 
+    /**
+     * For chr sorting
+     */
+    private CanonicalChromsomeComparator chrComp = new CanonicalChromsomeComparator();
+    
     /**
      * Return the active GIEMainDialog. null if none
      *
@@ -341,6 +348,19 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
     }
 
     /**
+     * 
+     * @return the real index of the currently selected table rows.
+     */
+    private int[] getSelectedRows() {
+	if (table.getSelectedRows() == null)
+	    return null;
+	int[] rows = new int[table.getSelectedRows().length];
+	for (int i = 0; i < table.getSelectedRows().length; i++)
+	    rows[i] = table.convertRowIndexToModel(table.getSelectedRows()[i]);
+	return rows;
+    }
+
+    /**
      * Return interval length in human readable form
      * 
      * @param i
@@ -424,30 +444,32 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	}
     }
 
-    public List<RegionOfInterest> getSelectedRegions() {
-	return getSelectedRegions(table.getSelectedRows());
-    }
-
     /**
      * Return the selected regions in the table view.
      *
      * @param selectedRows
      * @return
      */
-    private List<RegionOfInterest> getSelectedRegions(int[] selectedRows) {
+    public List<RegionOfInterest> getSelectedRegions() {
 	List<RegionOfInterest> selectedRegions = new ArrayList<RegionOfInterest>();
+	// convert to real indicces
+	int[] selectedRows = getSelectedRows();
 	if (selectedRows == null)
 	    return selectedRegions;
 	List<RegionOfInterest> regions = (List<RegionOfInterest>) IGV.getInstance().getSession()
 		.getAllRegionsOfInterest();
 	for (int selectedRowIndex : selectedRows) {
-	    selectedRegions.add(regions.get(selectedRowIndex));
+	    try {
+		selectedRegions.add(regions.get(selectedRowIndex));
+	    } catch (Exception e) {
+		log.error("Error selecting region # " + table.convertRowIndexToModel(selectedRowIndex));
+	    }
 	}
 	return selectedRegions;
     }
 
     /**
-     * Return the region corresponding to the passed row index.
+     * Return the region corresponding to the passed row index (MUST be normalized via table.convertRowIndexToModel()).
      * 
      * @param selectedRows
      * @return
@@ -508,7 +530,8 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	    idx++;
 	}
 	table.clearSelection();
-	table.setRowSelectionInterval(idx, idx);
+	int vidx = table.convertRowIndexToView(idx);
+	table.setRowSelectionInterval(vidx, vidx);
 	table.repaint();
     }
 
@@ -568,7 +591,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
      * Copy region to clipboard
      */
     public void copyRows() {
-	int[] selectedRows = table.getSelectedRows();
+	int[] selectedRows = getSelectedRows();
 	if (selectedRows.length > 0) {
 	    StringBuilder sb = new StringBuilder();
 	    for (int rowIndex : selectedRows) {
@@ -854,6 +877,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	    useFilter.addActionListener(new ActionListener() {
 		public void actionPerformed(ActionEvent e) {
 		    GIE.getInstance().getRowFilter().updateCurrentlyVisible();
+		    GIE.getInstance().setUseFilter(useFilter.isSelected());
 		    if (useFilter.isSelected())
 			tableSorter.setRowFilter(GIE.getInstance().getRowFilter());
 		    else
@@ -999,6 +1023,12 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	this.tableSorter = new TableRowSorter<TableModel>(model);
 	this.tableSorter.setRowFilter(null);
 	this.table.setRowSorter(tableSorter);
+	this.tableSorter.setComparator(COLIDX_Chr, new ChrComparator());
+	this.tableSorter.setComparator(COLIDX_Start, new IntComparator());
+	this.tableSorter.setComparator(COLIDX_End, new IntComparator());
+	this.tableSorter.setComparator(COLIDX_Score, new IntComparator());
+	this.tableSorter.setComparator(COLIDX_Width, new WidthComparator());
+
 	table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 	table.setRowSelectionAllowed(true);
 	table.setSelectionBackground(Color.red);
@@ -1009,6 +1039,13 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 		copyRows();
 	    }
 	}, "Copy", KeyStroke.getKeyStroke(KeyEvent.VK_C, ActionEvent.CTRL_MASK, false), JComponent.WHEN_FOCUSED);
+
+	// activate checkbox?
+	if (GIE.getInstance().isUseFilter()) {
+	    GIE.getInstance().getRowFilter().updateCurrentlyVisible();
+	    useFilter.setSelected(true);
+	    tableSorter.setRowFilter(GIE.getInstance().getRowFilter());
+	}
 
 	// configure strand input
 	setUpComboColumn(table, table.getColumnModel().getColumn(COLIDX_Strand), new String[] { "0", "+", "-" },
@@ -1021,8 +1058,8 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 
 	    public void actionPerformed(ActionEvent e) {
 		JTable table = (JTable) e.getSource();
-		int[] selectedRows = table.getSelectedRows();
-		navigateTo(getSelectedRegions(selectedRows));
+		int[] selectedRows = getSelectedRows();
+		navigateTo(getSelectedRegions());
 	    }
 
 	};
@@ -1034,8 +1071,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 
 	    public void actionPerformed(ActionEvent e) {
 		JTable table = (JTable) e.getSource();
-		int[] selectedRows = table.getSelectedRows();
-		List<RegionOfInterest> selectedRegions = getSelectedRegions(selectedRows);
+		List<RegionOfInterest> selectedRegions = getSelectedRegions();
 		IGV.getInstance().getSession().removeROI(selectedRegions);
 		reloadTable();
 	    }
@@ -1089,19 +1125,18 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 
     @Override
     public void receiveEvent(Object event) {
-
 	if (event instanceof ViewChange) {
 	    GIERowFilter filter = GIE.getInstance().getRowFilter();
-	    if (filter.updateCurrentlyVisible())
-		filterUpdate();
+	    filter.setViewChanged();
+	    filterUpdate();
 	}
     }
 
     public void filterUpdate() {
 	// set row filter
 	GIERowFilter filter = GIE.getInstance().getRowFilter();
-	if (useFilter.isSelected() ) {
-	    tableSorter.setRowFilter(GIE.getInstance().getRowFilter());
+	if (useFilter.isSelected()) {
+	    tableSorter.setRowFilter(filter);
 	}
     }
 
@@ -1212,7 +1247,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 		Point p = e.getPoint();
 		// must convert row index from view to model, in case of
 		// sorting, filtering
-		int row = table.rowAtPoint(p);
+		int row = table.convertRowIndexToModel(table.rowAtPoint(p));
 		int col = table.columnAtPoint(p);
 		if (col == COLIDX_COLOR) {
 		    RegionOfInterest r = getSelectedRegion(row);
@@ -1238,7 +1273,8 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 		Point p = e.getPoint();
 		// must convert row index from view to model, in case of
 		// sorting, filtering
-		int[] rows = table.getSelectedRows();
+		int[] rows = getSelectedRows();
+
 		// int col = table.columnAtPoint(p);
 
 		if (rows.length >= 0) {
@@ -1286,7 +1322,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 			public void actionPerformed(ActionEvent e) {
 			    int[] selectedRows = table.getSelectedRows();
 			    if (selectedRows.length > 0) {
-				List<RegionOfInterest> selectedRegions = getSelectedRegions(selectedRows);
+				List<RegionOfInterest> selectedRegions = getSelectedRegions();
 				mergeRegions(selectedRegions);
 				reloadTable();
 			    }
@@ -1299,7 +1335,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 			public void actionPerformed(ActionEvent e) {
 			    int[] selectedRows = table.getSelectedRows();
 			    if (selectedRows.length > 0) {
-				List<RegionOfInterest> selectedRegions = getSelectedRegions(selectedRows);
+				List<RegionOfInterest> selectedRegions = getSelectedRegions();
 				IGV.getInstance().getSession().removeROI(selectedRegions);
 				reloadTable();
 			    }
@@ -1324,7 +1360,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 			public void actionPerformed(ActionEvent e) {
 			    int[] selectedRows = table.getSelectedRows();
 			    if (selectedRows.length > 0) {
-				List<RegionOfInterest> selectedRegions = getSelectedRegions(selectedRows);
+				List<RegionOfInterest> selectedRegions = getSelectedRegions();
 				String tmp = JOptionPane.showInputDialog(null,
 					"<html><body>" + "BP to add to min coordinate</br>"
 						+ "(use negative integer to extend interval upstream):</body></html>",
@@ -1358,7 +1394,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 			public void actionPerformed(ActionEvent e) {
 			    int[] selectedRows = table.getSelectedRows();
 			    if (selectedRows.length > 0) {
-				List<RegionOfInterest> selectedRegions = getSelectedRegions(selectedRows);
+				List<RegionOfInterest> selectedRegions = getSelectedRegions();
 				String tmp = JOptionPane.showInputDialog(null,
 					"<html><body>" + "BP to add to max coordinate</br>"
 						+ "(use positive integer to extend interval downstream):</body></html>",
@@ -1391,7 +1427,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 			public void actionPerformed(ActionEvent e) {
 			    int[] selectedRows = table.getSelectedRows();
 			    if (selectedRows.length > 0) {
-				List<RegionOfInterest> selectedRegions = getSelectedRegions(selectedRows);
+				List<RegionOfInterest> selectedRegions = getSelectedRegions();
 				String prev = selectedRegions.size() == 1 ? selectedRegions.get(0).getScore() : "1000";
 				String score = JOptionPane.showInputDialog(null, "Score to set: ", prev);
 				if (score != null) {
@@ -1409,7 +1445,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 			public void actionPerformed(ActionEvent e) {
 			    int[] selectedRows = table.getSelectedRows();
 			    if (selectedRows.length > 0) {
-				List<RegionOfInterest> selectedRegions = getSelectedRegions(selectedRows);
+				List<RegionOfInterest> selectedRegions = getSelectedRegions();
 				Color prev = selectedRegions.size() == 1
 					? RegionOfInterest.getAWTColor(selectedRegions.get(0).getColor()) : null;
 				colorChooser.setColor(prev);
@@ -1442,7 +1478,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 			public void actionPerformed(ActionEvent e) {
 			    int[] selectedRows = table.getSelectedRows();
 			    if (selectedRows.length > 0) {
-				List<RegionOfInterest> selectedRegions = getSelectedRegions(selectedRows);
+				List<RegionOfInterest> selectedRegions = getSelectedRegions();
 				String prev = selectedRegions.size() == 1 ? selectedRegions.get(0).getDescription()
 					: "";
 				String name = JOptionPane.showInputDialog(null, "Name: ", prev);
@@ -1463,7 +1499,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 			public void actionPerformed(ActionEvent e) {
 			    int[] selectedRows = table.getSelectedRows();
 			    if (selectedRows.length > 0) {
-				List<RegionOfInterest> selectedRegions = getSelectedRegions(selectedRows);
+				List<RegionOfInterest> selectedRegions = getSelectedRegions();
 
 				GIEDatasetVersionLayer activeLayer = GIE.getInstance().getActiveDataset()
 					.getCurrentVersion().getActiveLayer();
@@ -1499,7 +1535,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 			public void actionPerformed(ActionEvent e) {
 			    int[] selectedRows = table.getSelectedRows();
 			    if (selectedRows.length > 0) {
-				List<RegionOfInterest> selectedRegions = getSelectedRegions(selectedRows);
+				List<RegionOfInterest> selectedRegions = getSelectedRegions();
 
 				GIEDatasetVersionLayer activeLayer = GIE.getInstance().getActiveDataset()
 					.getCurrentVersion().getActiveLayer();
@@ -1538,7 +1574,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 			    public void actionPerformed(ActionEvent e) {
 				int[] selectedRows = table.getSelectedRows();
 				if (selectedRows.length > 0) {
-				    List<RegionOfInterest> selectedRegions = getSelectedRegions(selectedRows);
+				    List<RegionOfInterest> selectedRegions = getSelectedRegions();
 				    String prev = selectedRegions.size() == 1 ? selectedRegions.get(0).getAnnotation(s)
 					    : "";
 				    String value = JOptionPane.showInputDialog(null, s + ": ", prev);
@@ -1595,6 +1631,46 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 
     public Set<String> getColumnNames() {
 	return colNameMap.keySet();
+    }
+
+    /**
+     * For col sorting
+     */
+    private class ChrComparator implements Comparator<String> {
+
+	public int compare(String o1, String o2) {
+	    return chrComp.compare(o1, o2);
+	}
+
+    }
+
+    /**
+     * For col sorting
+     */
+    private class IntComparator implements Comparator<Integer> {
+
+	public int compare(Integer o1, Integer o2) {
+	    return o1.compareTo(o2);
+	}
+
+    }
+
+    /**
+     * For col sorting
+     */
+    private class WidthComparator implements Comparator<String> {
+	public int compare(String s1, String s2) {
+	    Integer w1, w2;
+	    try {
+		w1 = new Integer(parseIntervalWidth(s1));
+		w2 = new Integer(parseIntervalWidth(s2));
+	    } catch (ParseException e) {
+		e.printStackTrace();
+		return 0;
+	    }
+	    return w1.compareTo(w2);
+	}
+
     }
 
     // /**

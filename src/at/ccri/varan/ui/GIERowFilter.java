@@ -12,6 +12,8 @@ import org.broad.igv.feature.Range;
 import org.broad.igv.feature.genome.GenomeManager;
 import org.broad.igv.ui.IGV;
 
+import at.ccri.varan.util.CanonicalChromsomeComparator;
+
 /**
  * A row filter for the interval table
  * 
@@ -25,6 +27,12 @@ public class GIERowFilter extends RowFilter<TableModel, Object> {
     }
 
     SCOPE scope = SCOPE.GENOME;
+
+    boolean viewChanged = true;
+
+    public void setViewChanged() {
+	viewChanged = true;
+    }
 
     Range currentlyVisible = null;
     boolean defGenome = true;
@@ -47,37 +55,23 @@ public class GIERowFilter extends RowFilter<TableModel, Object> {
     }
 
     /**
-     * FIXME: too slow? 
-     * @return true if the view change will change filter results.
+     * FIXME: too slow?
      */
-    public boolean updateCurrentlyVisible() {
+    public void updateCurrentlyVisible() {
 
 	this.defGenome = GenomeManager.getInstance().getCurrentGenome().getId().equals(Globals.DEFAULT_GENOME);
 	Range tmp = IGV.getInstance().getSession().getReferenceFrame().getCurrentRange();
-	tmp = defGenome ? new Range(CanonicalChromsomeComparator.getCanonicalMappingHuman(tmp.getChr()), tmp.getStart(),
-		tmp.getEnd()) : tmp;
-
-	boolean needsRefresh = true;
-	if (currentlyVisible == null)
-	    needsRefresh = true;
-	else {
-	    switch (scope) {
-	    case GENOME:
-		needsRefresh = false;
-		break;
-	    case CHROMOSOME:
-		if (currentlyVisible.getChr().equals(tmp.getChr()))
-		    needsRefresh = false;
-		break;
-	    }
-	}
-	this.currentlyVisible = tmp;
-	return needsRefresh;
+	this.currentlyVisible = defGenome
+		? new Range(CanonicalChromsomeComparator.getCanonicalMappingHuman(tmp.getChr()), tmp.getStart(),
+			tmp.getEnd())
+		: tmp;
+	viewChanged = true;
     }
 
     @Override
     public boolean include(javax.swing.RowFilter.Entry<? extends TableModel, ? extends Object> entry) {
-	if (currentlyVisible == null)
+
+	if (viewChanged)
 	    updateCurrentlyVisible();
 
 	String chr = (String) entry.getValue(GIEDataDialog.COLIDX_Chr);
@@ -95,12 +89,12 @@ public class GIERowFilter extends RowFilter<TableModel, Object> {
 	    if (!currentlyVisible.overlaps(test))
 		ok = false;
 	}
-	
-	if ( ok ) {
+
+	if (ok) {
 	    // test individual filters
-	    for ( GIEAttributeFilter f : attributeFilters ) {
+	    for (GIEAttributeFilter f : attributeFilters) {
 		boolean af = f.filter(entry);
-		if ( ! af ) {
+		if (!af) {
 		    ok = false;
 		    break;
 		}
@@ -119,13 +113,13 @@ public class GIERowFilter extends RowFilter<TableModel, Object> {
     public void delAttributeFilter(String s) throws IOException {
 	attributeFilters.remove(GIEAttributeFilter.parseFromString(s));
     }
-    
+
     public List<GIEAttributeFilter> getAttributeFilters() {
-        return attributeFilters;
+	return attributeFilters;
     }
 
     public void clearAttributeFilters() {
-        this.attributeFilters.clear();
+	this.attributeFilters.clear();
     }
 
 }

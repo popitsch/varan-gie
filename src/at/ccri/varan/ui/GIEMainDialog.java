@@ -30,7 +30,9 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dialog;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Frame;
+import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
@@ -54,6 +56,7 @@ import javax.swing.BoxLayout;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
+import javax.swing.JEditorPane;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
@@ -124,7 +127,7 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
     /**
      * Dataset description
      */
-    private JTextArea descr;
+    private JEditorPane descr;
 
     /**
      * Layers combo box
@@ -398,71 +401,6 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 
 	});
 	datasetsM.add(addDsVersionM);
-
-	// addVersionButton = new JButton("Add Dataset Version");
-	// addVersionButton
-	// .setToolTipText("Add a version to the currently selected dataset. Will copy existing layers.");
-	// addVersionButton.setHorizontalAlignment(SwingConstants.RIGHT);
-	// buttonPane.add(addVersionButton);
-	// addVersionButton.addActionListener(new ActionListener() {
-	// public void actionPerformed(ActionEvent e) {
-	// // if no selected dataset - do nothing
-	// if (GIE.getInstance().getActiveDataset() == null)
-	// return;
-	//
-	// // get proposed new version tag
-	// String proposedTag = GIE.getInstance().getProposedNextVersiontag();
-	// String tag = JOptionPane.showInputDialog(IGV.getMainFrame(), "Version tag: ",
-	// proposedTag == null ? "" : proposedTag);
-	// if (tag == null)
-	// return; // cancel
-	//
-	// GIEDataset ad = GIE.getInstance().getActiveDataset();
-	// boolean success = false;
-	// try {
-	// // save current session
-	// ad.save();
-	//
-	// // create new version
-	// GIEDatasetVersion ver = new GIEDatasetVersion(ad,
-	// ad.getCurrentVersion().getDescription() + " version: " + tag, GIE.defaultAuthor, tag,
-	// ad.getCurrentVersion().getActiveLayer().getAnnotations());
-	//
-	// // copy all layers from current version
-	// ver.copyLayersFrom(ad.getCurrentVersion());
-	// success = ad.addVersion(ver);
-	// } catch (IOException e1) {
-	// e1.printStackTrace();
-	// success = false;
-	// }
-	//
-	// if (!success) {
-	// JOptionPane.showMessageDialog(IGV.getMainFrame(),
-	// "Cannot create new version with tag '" + tag + "'.", "Error",
-	// JOptionPane.INFORMATION_MESSAGE);
-	// } else {
-	//
-	// // remove gie tracks
-	// GIE.getInstance().removeGIETracks();
-	//
-	// // save active dataset to create .bed file
-	// ad.selectVersion(tag);
-	// ad.save();
-	//
-	// // create new version
-	// GIE.getInstance().loadDataset(GIE.getInstance().getActiveDatasetName(), tag);
-	//
-	// GIEDataDialog ddiag = GIEDataDialog.getInstance(IGV.getMainFrame());
-	// reloadTable();
-	// ddiag.refresh();
-	// table.repaint();
-	// UndoHandler.getInstance().clear(); // no undo beyond load.
-	// }
-	// }
-	//
-	// });
-	// addVersionButton.setEnabled(false);
-
 	menuBar.add(datasetsM);
 	// -----------------------------------------------------------------------------
 
@@ -483,8 +421,8 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 
 	// cat selection panel
 	JPanel catPanel = new JPanel();
-	catPanel.setLayout(new BoxLayout(catPanel, BoxLayout.PAGE_AXIS));
-	catPanel.add(new JLabel("Filter By Category"), Component.RIGHT_ALIGNMENT);
+	catPanel.setLayout(new GridLayout(3, 1));
+	catPanel.add(new JLabel("Filter By Category"), Component.LEFT_ALIGNMENT);
 	DefaultComboBoxModel<String> comboModel = new DefaultComboBoxModel<>();
 	comboModel.addElement(FILTER_SHOW_ALL);
 	for (String cat : GIE.getInstance().getCategories())
@@ -499,21 +437,19 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 		    reloadTable();
 		}
 	    }
-
 	});
-	catPanel.add(catCombo, Component.RIGHT_ALIGNMENT);
+	catPanel.add(catCombo, Component.LEFT_ALIGNMENT);
 	catPanel.add(Box.createVerticalStrut(30));
 	testActionListenerActive = true;
 
 	// dataset description panel
-	JPanel descPanel = new JPanel();
-	descPanel.setLayout(new BorderLayout());
-	descr = new JTextArea(3, 45);
+	descr = new JEditorPane();
+	descr.setPreferredSize(new Dimension(800, 3));
+	//descr.setSize(400, 150);
 	JScrollPane sp = new JScrollPane(descr);
 	sp.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1, true),
 		"Description"));
 	sp.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
-	descPanel.add(sp, BorderLayout.CENTER);
 	descr.addFocusListener(new FocusListener() {
 
 	    @Override
@@ -530,8 +466,11 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 
 	// TOP PANEL: descr + cat selection
 	JPanel topPanel = new JPanel(new BorderLayout());
-	topPanel.add(descPanel, BorderLayout.WEST);
+	topPanel.add(sp, BorderLayout.CENTER);
 	topPanel.add(catPanel, BorderLayout.EAST);
+	topPanel.setMaximumSize(new Dimension(800, 100));
+	topPanel.setPreferredSize(new Dimension(800, 100));
+	
 	contentPanel.add(topPanel, BorderLayout.PAGE_START);
 
 	/**

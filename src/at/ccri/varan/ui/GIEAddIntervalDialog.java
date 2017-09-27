@@ -67,6 +67,7 @@ import org.broad.igv.feature.genome.GenomeManager;
 import org.broad.igv.ui.IGV;
 
 import at.ccri.varan.GIE;
+import at.ccri.varan.util.CanonicalChromsomeComparator;
 import at.ccri.varan.util.SpringUtilities;
 
 /**

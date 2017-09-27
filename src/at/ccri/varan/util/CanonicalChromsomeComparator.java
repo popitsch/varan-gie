@@ -1,4 +1,4 @@
-package at.ccri.varan.ui;
+package at.ccri.varan.util;
 
 import java.util.Comparator;
 import java.util.HashMap;

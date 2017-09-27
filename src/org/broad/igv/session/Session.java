@@ -64,8 +64,8 @@ import org.broad.igv.ui.panel.FrameManager;
 import org.broad.igv.ui.panel.ReferenceFrame;
 import org.broad.igv.util.ObservableForObject;
 
-import at.ccri.varan.ui.CanonicalChromsomeComparator;
 import at.ccri.varan.ui.GIEDataDialog;
+import at.ccri.varan.util.CanonicalChromsomeComparator;
 
 /**
  * @author eflakes

@@ -754,7 +754,7 @@ public class FeatureTrack extends AbstractTrack implements IGVEventObserver {
 	    // Mark the interval with an empty feature list to prevent an endless loop of load attempts.
 	    PackedFeatures pf = new PackedFeatures(chr, start, end);
 	    packedFeaturesMap.put(frame.getName(), pf);
-	    String msg = "Error loading features for interval: " + chr + ":" + start + "-" + end + " <br>"
+	    String msg = "Error loading features for interval: " + chr + ":" + start + "-" + end + " <br>track=" + getName()+"<br>"
 		    + e.toString();
 	    MessageUtils.showMessage(msg);
 	    log.error(msg, e);

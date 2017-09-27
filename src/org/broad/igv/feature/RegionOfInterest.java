@@ -107,8 +107,11 @@ public class RegionOfInterest implements Comparable<RegionOfInterest> {
 	    sb.append("strand=" + strand + "<br/>");
 	if (anno.size() > 0) {
 	    sb.append("<hr/><small>");
-	    for (String k : anno.keySet())
-		sb.append("<small>" + k + "=" + anno.get(k) + "<br/>");
+	    for (String k : anno.keySet()) {
+		String v = anno.get(k).trim();
+		if (!k.equals("") && !v.equals(""))
+		    sb.append("<small>" + k + "=" + v + "<br/>");
+	    }
 	    sb.append("</small>");
 	}
 	sb.append("</body></html>");
