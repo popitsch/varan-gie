@@ -141,6 +141,7 @@ import org.broad.igv.util.encode.EncodeFileBrowser;
 import apple.dts.samplecode.osxadapter.OSXAdapter;
 import at.ccri.varan.ui.GIEAboutMenuAction;
 import at.ccri.varan.ui.GIEAnnoMenuAction;
+import at.ccri.varan.ui.GIEMainDialog;
 import at.ccri.varan.ui.GIEMainMenuAction;
 
 /**
@@ -924,8 +925,8 @@ public class IGVMenuBar extends JMenuBar implements IGVEventObserver {
 	// ...............................
 	// GIE main menu
 	// ...............................
-	menuAction = new GIEMainMenuAction("Show VARAN-GIE ...", IGV.getInstance());
-	menuAction.setToolTipText("Show VARAN Genomic Interval Editor Windows");
+	menuAction = new GIEMainMenuAction("Show VARAN Windows ...", IGV.getInstance());
+	menuAction.setToolTipText("Show VARAN-GIE Windows");
 	menuItems.add(MenuAndToolbarUtils.createMenuItem(menuAction));
 
 	// ...............................
@@ -946,6 +947,9 @@ public class IGVMenuBar extends JMenuBar implements IGVEventObserver {
 
 	MenuAction dataMenuAction = new MenuAction("VARAN", null, KeyEvent.VK_G);
 	viewMenu = MenuAndToolbarUtils.createMenu(menuItems, dataMenuAction);
+	
+//	viewMenu.setOpaque(false);
+//	viewMenu.setBackground(GIEMainDialog.COL_EVEN_ROWS);
 	return viewMenu;
     }
 

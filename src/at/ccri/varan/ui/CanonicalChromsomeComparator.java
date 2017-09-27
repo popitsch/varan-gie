@@ -8,8 +8,6 @@ import org.apache.log4j.Logger;
 import org.broad.igv.feature.RegionOfInterest;
 import org.broad.igv.feature.genome.GenomeManager;
 
-import javafx.scene.layout.Region;
-
 /**
  * Compare chromosomes in a canonical fashion. Order is 1, 2, 3, ..., 22, M, X,
  * Y, <other-char-ordered>
@@ -99,10 +97,10 @@ public class CanonicalChromsomeComparator implements Comparator<String> {
     public static int parseCoordinate(String chr, Integer previous, String newString) {
 	if (previous == null)
 	    previous = 0;
-	if (newString.equalsIgnoreCase("pter"))
+	if (newString.toLowerCase().startsWith("pter"))
 	    // set to pter
 	    return 0;
-	else if (newString.equalsIgnoreCase("qter")) {
+	else if (newString.toLowerCase().startsWith("qter")) {
 	    // set to qter
 	    try {
 		return GenomeManager.getInstance().getCurrentGenome().getChromosome(chr).getLength();

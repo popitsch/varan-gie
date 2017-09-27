@@ -30,7 +30,6 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dialog;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.Frame;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -53,11 +52,12 @@ import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.DefaultComboBoxModel;
-import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -65,7 +65,6 @@ import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.ListSelectionModel;
 import javax.swing.ScrollPaneConstants;
-import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.WindowConstants;
 import javax.swing.border.EmptyBorder;
@@ -91,9 +90,8 @@ import at.ccri.varan.GIEDatasetVersion;
  */
 public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver {
 
-    
     private static Logger log = Logger.getLogger(GIEMainDialog.class);
-    
+
     private static final long serialVersionUID = 1L;
 
     public static final String FILTER_SHOW_ALL = "Show All";
@@ -119,9 +117,9 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
     private JTable table;
 
     /**
-     * add dataset version button.
+     * add dataset version menu.
      */
-    private JButton addVersionButton;
+    private JMenuItem addDsVersionM;
 
     /**
      * Dataset description
@@ -217,12 +215,11 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 	resizeColumnWidth(table);
 	// table.addMouseListener(new MyTablePopupHandler());
 
-	if (addVersionButton != null) {
-
+	if (addDsVersionM != null) {
 	    if (gie.getActiveDataset() != null)
-		addVersionButton.setEnabled(true);
+		addDsVersionM.setEnabled(true);
 	    else
-		addVersionButton.setEnabled(false);
+		addDsVersionM.setEnabled(false);
 	}
     }
 
@@ -252,8 +249,8 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
     public Integer[] getCoords() {
 	if (!isShowing())
 	    return null;
-	return new Integer[] { Math.max(0, (int) getLocationOnScreen().getX()),  Math.max(0, (int) getLocationOnScreen().getY()), getWidth(),
-		getHeight() };
+	return new Integer[] { Math.max(0, (int) getLocationOnScreen().getX()),
+		Math.max(0, (int) getLocationOnScreen().getY()), getWidth(), getHeight() };
     }
 
     /**
@@ -288,6 +285,190 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 	}
 	// +++++++++++++++++++++++++++++++++++++++++++++++
 
+	/**
+	 * Menu
+	 * 
+	 */
+	Color MENU_COL = GIEMainDialog.COL_EVEN_ROWS;
+	JColorMenuBar menuBar = new JColorMenuBar();
+	menuBar.setColor(MENU_COL);
+	setJMenuBar(menuBar);
+
+	// ------------------------------- DATASETS ------------------------------------------------
+	JMenu datasetsM = new JMenu("Datasets");
+	datasetsM.setOpaque(false);
+	datasetsM.setBackground(MENU_COL);
+
+	JMenuItem newDsM = new JMenuItem("New Dataset");
+	newDsM.setToolTipText("Create a new dataset");
+	newDsM.addActionListener(new ActionListener() {
+	    public void actionPerformed(ActionEvent e) {
+		if (GenomeManager.getInstance().getCurrentGenome() == null)
+		    JOptionPane.showMessageDialog(null, "Please select a genome first");
+		else
+		    new GIENewDatasetDialog(IGV.getMainFrame());
+	    }
+
+	});
+	datasetsM.add(newDsM);
+
+	JMenuItem impDsM = new JMenuItem("Import Dataset");
+	impDsM.setToolTipText("Import dataset from a VARAN ZIP file");
+	impDsM.addActionListener(new ActionListener() {
+	    public void actionPerformed(ActionEvent e) {
+		JFileChooser fDialog = new JFileChooser();
+		fDialog.setDialogTitle("Import Datasets From...");
+		fDialog.setFileFilter(new FileNameExtensionFilter("ZIP File", "zip"));
+		int userSelection = fDialog.showSaveDialog(IGV.getMainFrame());
+		if (userSelection == JFileChooser.APPROVE_OPTION) {
+		    File fin = fDialog.getSelectedFile();
+		    try {
+			if (GIE.getInstance().importDatasets(fin))
+			    JOptionPane.showMessageDialog(null, "Imported datasets from " + fin, "Import information",
+				    JOptionPane.INFORMATION_MESSAGE);
+			refresh();
+		    } catch (Exception ex) {
+			ex.printStackTrace();
+			JOptionPane.showMessageDialog(null, "<html><body>Could not import from " + fin + "<br/><b>"
+				+ ex.getMessage() + "</b></body></html>", "Import error", JOptionPane.ERROR_MESSAGE);
+		    }
+		}
+	    }
+
+	});
+	datasetsM.add(impDsM);
+
+	addDsVersionM = new JMenuItem("Add Dataset Version");
+	addDsVersionM.setToolTipText("Add a version to the currently selected dataset. All existing layers will be copied.");
+	addDsVersionM.addActionListener(new ActionListener() {
+	    public void actionPerformed(ActionEvent e) {
+		// if no selected dataset - do nothing
+		if (GIE.getInstance().getActiveDataset() == null)
+		    return;
+
+		// get proposed new version tag
+		String proposedTag = GIE.getInstance().getProposedNextVersiontag();
+		String tag = JOptionPane.showInputDialog(IGV.getMainFrame(), "Version tag: ",
+			proposedTag == null ? "" : proposedTag);
+		if (tag == null)
+		    return; // cancel
+
+		GIEDataset ad = GIE.getInstance().getActiveDataset();
+		boolean success = false;
+		try {
+		    // save current session
+		    ad.save();
+
+		    // create new version
+		    GIEDatasetVersion ver = new GIEDatasetVersion(ad,
+			    ad.getCurrentVersion().getDescription() + " version: " + tag, GIE.defaultAuthor, tag,
+			    ad.getCurrentVersion().getActiveLayer().getAnnotations());
+
+		    // copy all layers from current version
+		    ver.copyLayersFrom(ad.getCurrentVersion());
+		    success = ad.addVersion(ver);
+		} catch (IOException e1) {
+		    e1.printStackTrace();
+		    success = false;
+		}
+
+		if (!success) {
+		    JOptionPane.showMessageDialog(IGV.getMainFrame(),
+			    "Cannot create new version with tag '" + tag + "'.", "Error",
+			    JOptionPane.INFORMATION_MESSAGE);
+		} else {
+
+		    // remove gie tracks
+		    GIE.getInstance().removeGIETracks();
+
+		    // save active dataset to create .bed file
+		    ad.selectVersion(tag);
+		    ad.save();
+
+		    // create new version
+		    GIE.getInstance().loadDataset(GIE.getInstance().getActiveDatasetName(), tag);
+
+		    GIEDataDialog ddiag = GIEDataDialog.getInstance(IGV.getMainFrame());
+		    reloadTable();
+		    ddiag.refresh();
+		    table.repaint();
+		    UndoHandler.getInstance().clear(); // no undo beyond load.
+		}
+	    }
+
+	});
+	datasetsM.add(addDsVersionM);
+
+	// addVersionButton = new JButton("Add Dataset Version");
+	// addVersionButton
+	// .setToolTipText("Add a version to the currently selected dataset. Will copy existing layers.");
+	// addVersionButton.setHorizontalAlignment(SwingConstants.RIGHT);
+	// buttonPane.add(addVersionButton);
+	// addVersionButton.addActionListener(new ActionListener() {
+	// public void actionPerformed(ActionEvent e) {
+	// // if no selected dataset - do nothing
+	// if (GIE.getInstance().getActiveDataset() == null)
+	// return;
+	//
+	// // get proposed new version tag
+	// String proposedTag = GIE.getInstance().getProposedNextVersiontag();
+	// String tag = JOptionPane.showInputDialog(IGV.getMainFrame(), "Version tag: ",
+	// proposedTag == null ? "" : proposedTag);
+	// if (tag == null)
+	// return; // cancel
+	//
+	// GIEDataset ad = GIE.getInstance().getActiveDataset();
+	// boolean success = false;
+	// try {
+	// // save current session
+	// ad.save();
+	//
+	// // create new version
+	// GIEDatasetVersion ver = new GIEDatasetVersion(ad,
+	// ad.getCurrentVersion().getDescription() + " version: " + tag, GIE.defaultAuthor, tag,
+	// ad.getCurrentVersion().getActiveLayer().getAnnotations());
+	//
+	// // copy all layers from current version
+	// ver.copyLayersFrom(ad.getCurrentVersion());
+	// success = ad.addVersion(ver);
+	// } catch (IOException e1) {
+	// e1.printStackTrace();
+	// success = false;
+	// }
+	//
+	// if (!success) {
+	// JOptionPane.showMessageDialog(IGV.getMainFrame(),
+	// "Cannot create new version with tag '" + tag + "'.", "Error",
+	// JOptionPane.INFORMATION_MESSAGE);
+	// } else {
+	//
+	// // remove gie tracks
+	// GIE.getInstance().removeGIETracks();
+	//
+	// // save active dataset to create .bed file
+	// ad.selectVersion(tag);
+	// ad.save();
+	//
+	// // create new version
+	// GIE.getInstance().loadDataset(GIE.getInstance().getActiveDatasetName(), tag);
+	//
+	// GIEDataDialog ddiag = GIEDataDialog.getInstance(IGV.getMainFrame());
+	// reloadTable();
+	// ddiag.refresh();
+	// table.repaint();
+	// UndoHandler.getInstance().clear(); // no undo beyond load.
+	// }
+	// }
+	//
+	// });
+	// addVersionButton.setEnabled(false);
+
+	menuBar.add(datasetsM);
+	// -----------------------------------------------------------------------------
+
+	/**
+	 * Content pane
+	 */
 	getContentPane().setLayout(new BorderLayout());
 	JPanel contentPanel = new JPanel();
 	contentPanel.setLayout(new BorderLayout());
@@ -309,6 +490,8 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 	for (String cat : GIE.getInstance().getCategories())
 	    comboModel.addElement(cat);
 	catCombo.setModel(comboModel);
+	catCombo.setToolTipText(
+		"<html><body>Filter table view by selected tag.</br> Entries with no tag will always be shown.</body></html>");
 	catCombo.addActionListener(new ActionListener() {
 	    public void actionPerformed(ActionEvent e) {
 		if (testActionListenerActive) {
@@ -318,18 +501,17 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 	    }
 
 	});
-	catPanel.add(catCombo,Component.RIGHT_ALIGNMENT);
+	catPanel.add(catCombo, Component.RIGHT_ALIGNMENT);
 	catPanel.add(Box.createVerticalStrut(30));
 	testActionListenerActive = true;
 
 	// dataset description panel
-	
 	JPanel descPanel = new JPanel();
 	descPanel.setLayout(new BorderLayout());
-	descr = new JTextArea(3, 55);
-	JScrollPane sp = new JScrollPane(descr); 
+	descr = new JTextArea(3, 45);
+	JScrollPane sp = new JScrollPane(descr);
 	sp.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1, true),
-	"Description"));
+		"Description"));
 	sp.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 	descPanel.add(sp, BorderLayout.CENTER);
 	descr.addFocusListener(new FocusListener() {
@@ -358,7 +540,7 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 	final int COLIDX_Cat = 0;
 	final int COLIDX_Name = 1;
 	final int COLIDX_Ver = 2;
-//	final int COLIDX_Date = 3;
+	// final int COLIDX_Date = 3;
 	final int COLIDX_Load = 4;
 	final int COLIDX_Del = 5;
 	final int COLIDX_Download = 6;
@@ -490,7 +672,7 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 
 		switch (col) {
 		case COLIDX_Load:
-		    return "Load this dataset (will autosave the current one)";
+		    return "Load this dataset version";
 		case COLIDX_Del:
 		    return "Delete this dataset";
 		case COLIDX_Download:
@@ -619,142 +801,80 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 	tpane.setBorder(BorderFactory.createTitledBorder("Datasets"));
 	contentPanel.add(tpane, BorderLayout.CENTER);
 
-	/**
-	 * buttons
-	 */
-	JPanel buttonPane = new JPanel();
-	buttonPane.setLayout(new FlowLayout(FlowLayout.RIGHT));
-	contentPanel.add(buttonPane, BorderLayout.SOUTH);
-	{
+	// /**
+	// * buttons
+	// */
+	// JPanel buttonPane = new JPanel();
+	// buttonPane.setLayout(new FlowLayout(FlowLayout.RIGHT));
+	// contentPanel.add(buttonPane, BorderLayout.SOUTH);
+	// {
+	//
+	// JButton addButton = new JButton("New Dataset");
+	// addButton.setToolTipText("Create a new dataset");
+	// addButton.setHorizontalAlignment(SwingConstants.LEFT);
+	// buttonPane.add(addButton);
+	// addButton.addActionListener(new ActionListener() {
+	// public void actionPerformed(ActionEvent e) {
+	// if (GenomeManager.getInstance().getCurrentGenome() == null)
+	// JOptionPane.showMessageDialog(null, "Please select a genome first");
+	// else
+	// new GIENewDatasetDialog(IGV.getMainFrame());
+	// }
+	//
+	// });
+	//
+	// JButton importButton = new JButton("Import Datasets");
+	// importButton.setToolTipText("Import datasets from a VARAN ZIP file");
+	// importButton.setHorizontalAlignment(SwingConstants.LEFT);
+	// buttonPane.add(importButton);
+	// importButton.addActionListener(new ActionListener() {
+	// public void actionPerformed(ActionEvent e) {
+	// JFileChooser fDialog = new JFileChooser();
+	// fDialog.setDialogTitle("Import Datasets From...");
+	// fDialog.setFileFilter(new FileNameExtensionFilter("ZIP File", "zip"));
+	// int userSelection = fDialog.showSaveDialog(IGV.getMainFrame());
+	// if (userSelection == JFileChooser.APPROVE_OPTION) {
+	// File fin = fDialog.getSelectedFile();
+	// try {
+	// if (GIE.getInstance().importDatasets(fin))
+	// JOptionPane.showMessageDialog(null, "Imported datasets from " + fin,
+	// "Import information", JOptionPane.INFORMATION_MESSAGE);
+	// refresh();
+	// } catch (Exception ex) {
+	// ex.printStackTrace();
+	// JOptionPane
+	// .showMessageDialog(
+	// null, "<html><body>Could not import from " + fin + "<br/><b>"
+	// + ex.getMessage() + "</b></body></html>",
+	// "Import error", JOptionPane.ERROR_MESSAGE);
+	// }
+	//
+	// }
+	//
+	// }
+	//
+	// });
+	//
 
-	    JButton addButton = new JButton("New Dataset");
-	    addButton.setToolTipText("Create a new dataset");
-	    addButton.setHorizontalAlignment(SwingConstants.LEFT);
-	    buttonPane.add(addButton);
-	    addButton.addActionListener(new ActionListener() {
-		public void actionPerformed(ActionEvent e) {
-		    if (GenomeManager.getInstance().getCurrentGenome() == null)
-			JOptionPane.showMessageDialog(null, "Please select a genome first");
-		    else
-			new GIENewDatasetDialog(IGV.getMainFrame());
-		}
-
-	    });
-
-	    JButton importButton = new JButton("Import Datasets");
-	    importButton.setToolTipText("Import datasets from a VARAN ZIP file");
-	    importButton.setHorizontalAlignment(SwingConstants.LEFT);
-	    buttonPane.add(importButton);
-	    importButton.addActionListener(new ActionListener() {
-		public void actionPerformed(ActionEvent e) {
-		    JFileChooser fDialog = new JFileChooser();
-		    fDialog.setDialogTitle("Import Datasets From...");
-		    fDialog.setFileFilter(new FileNameExtensionFilter("ZIP File", "zip"));
-		    int userSelection = fDialog.showSaveDialog(IGV.getMainFrame());
-		    if (userSelection == JFileChooser.APPROVE_OPTION) {
-			File fin = fDialog.getSelectedFile();
-			try {
-			    if (GIE.getInstance().importDatasets(fin))
-				JOptionPane.showMessageDialog(null, "Imported datasets from " + fin,
-					"Import information", JOptionPane.INFORMATION_MESSAGE);
-			    refresh();
-			} catch (Exception ex) {
-			    ex.printStackTrace();
-			    JOptionPane
-				    .showMessageDialog(
-					    null, "<html><body>Could not import from " + fin + "<br/><b>"
-						    + ex.getMessage() + "</b></body></html>",
-					    "Import error", JOptionPane.ERROR_MESSAGE);
-			}
-
-		    }
-
-		}
-
-	    });
-
-	    addVersionButton = new JButton("Add Dataset Version");
-	    addVersionButton
-		    .setToolTipText("Add a version to the currently selected dataset. Will copy existing layers.");
-	    addVersionButton.setHorizontalAlignment(SwingConstants.RIGHT);
-	    buttonPane.add(addVersionButton);
-	    addVersionButton.addActionListener(new ActionListener() {
-		public void actionPerformed(ActionEvent e) {
-		    // if no selected dataset - do nothing
-		    if (GIE.getInstance().getActiveDataset() == null)
-			return;
-
-		    // get proposed new version tag
-		    String proposedTag = GIE.getInstance().getProposedNextVersiontag();
-		    String tag = JOptionPane.showInputDialog(IGV.getMainFrame(), "Version tag: ",
-			    proposedTag == null ? "" : proposedTag);
-		    if (tag == null)
-			return; // cancel
-
-		    GIEDataset ad = GIE.getInstance().getActiveDataset();
-		    boolean success = false;
-		    try {
-			// save current session
-			ad.save();
-
-			// create new version
-			GIEDatasetVersion ver = new GIEDatasetVersion(ad,
-				ad.getCurrentVersion().getDescription() + " version: " + tag, GIE.defaultAuthor, tag,
-				ad.getCurrentVersion().getActiveLayer().getAnnotations());
-
-			// copy all layers from current version
-			ver.copyLayersFrom(ad.getCurrentVersion());
-			success = ad.addVersion(ver);
-		    } catch (IOException e1) {
-			e1.printStackTrace();
-			success = false;
-		    }
-
-		    if (!success) {
-			JOptionPane.showMessageDialog(IGV.getMainFrame(),
-				"Cannot create new version with tag '" + tag + "'.", "Error",
-				JOptionPane.INFORMATION_MESSAGE);
-		    } else {
-
-			// remove gie tracks
-			GIE.getInstance().removeGIETracks();
-
-			// save active dataset to create .bed file
-			ad.selectVersion(tag);
-			ad.save();
-
-			// create new version
-			GIE.getInstance().loadDataset(GIE.getInstance().getActiveDatasetName(), tag);
-
-			GIEDataDialog ddiag = GIEDataDialog.getInstance(IGV.getMainFrame());
-			reloadTable();
-			ddiag.refresh();
-			table.repaint();
-			UndoHandler.getInstance().clear(); // no undo beyond load.
-		    }
-		}
-
-	    });
-	    addVersionButton.setEnabled(false);
-
-	    JButton viewIntervalsButton = new JButton("View Intervals");
-	    viewIntervalsButton.setToolTipText("Show the interval window if not visible.");
-	    viewIntervalsButton.setHorizontalAlignment(SwingConstants.RIGHT);
-	    buttonPane.add(viewIntervalsButton);
-	    viewIntervalsButton.addActionListener(new ActionListener() {
-		public void actionPerformed(ActionEvent e) {
-		    GIEDataDialog ddiag = GIEDataDialog.getInstance(IGV.getMainFrame());
-		    if (ddiag.isVisible()) {
-			ddiag.pack();
-		    } else {
-			ddiag.setVisible(true);
-			ddiag.pack();
-		    }
-		}
-
-	    });
-
-	}
+	//
+	// JButton viewIntervalsButton = new JButton("View Intervals");
+	// viewIntervalsButton.setToolTipText("Show the interval window if not visible.");
+	// viewIntervalsButton.setHorizontalAlignment(SwingConstants.RIGHT);
+	// buttonPane.add(viewIntervalsButton);
+	// viewIntervalsButton.addActionListener(new ActionListener() {
+	// public void actionPerformed(ActionEvent e) {
+	// GIEDataDialog ddiag = GIEDataDialog.getInstance(IGV.getMainFrame());
+	// if (ddiag.isVisible()) {
+	// ddiag.pack();
+	// } else {
+	// ddiag.setVisible(true);
+	// ddiag.pack();
+	// }
+	// }
+	//
+	// });
+	//
+	// }
 
 	resizeColumnWidth(table);
 	pack();

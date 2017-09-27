@@ -96,7 +96,23 @@ public class RegionOfInterest implements Comparable<RegionOfInterest> {
     }
 
     public String getTooltip() {
-	return description == null ? chr + ":" + getDisplayStart() + "-" + getDisplayEnd() : description;
+
+	StringBuffer sb = new StringBuffer();
+	sb.append("<html><body>");
+	sb.append("<b>" + (description == null ? chr + ":" + getDisplayStart() + "-" + getDisplayEnd() : description)
+		+ "</b><br/>");
+	if (!score.equals("0"))
+	    sb.append("score=" + score + "<br/>");
+	if (strand != null && !strand.equals("0"))
+	    sb.append("strand=" + strand + "<br/>");
+	if (anno.size() > 0) {
+	    sb.append("<hr/><small>");
+	    for (String k : anno.keySet())
+		sb.append("<small>" + k + "=" + anno.get(k) + "<br/>");
+	    sb.append("</small>");
+	}
+	sb.append("</body></html>");
+	return sb.toString();
     }
 
     public void setChr(String c) {
@@ -348,5 +364,5 @@ public class RegionOfInterest implements Comparable<RegionOfInterest> {
     public String toString() {
 	return chr + ":" + start + "-" + end;
     }
-    
+
 }

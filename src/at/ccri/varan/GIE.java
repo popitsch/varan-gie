@@ -76,6 +76,7 @@ import at.ccri.varan.ui.CanonicalChromsomeComparator;
 import at.ccri.varan.ui.GIEDataDialog;
 import at.ccri.varan.ui.GIEMainDialog;
 import at.ccri.varan.ui.GIEPathMapDialog;
+import at.ccri.varan.ui.GIERowFilter;
 import at.ccri.varan.ui.UndoHandler;
 
 /**
@@ -148,6 +149,11 @@ public class GIE {
      */
     transient private static File lockFile;
 
+    /**
+     * Filter for the data table
+     */
+    GIERowFilter rowFilter = new GIERowFilter();
+    
     /**
      * GIE annotation tracks
      */
@@ -1355,6 +1361,14 @@ public class GIE {
 
     public void setShowRefLines(boolean showRefLines) {
 	this.showRefLines = showRefLines;
+    }
+
+    public GIERowFilter getRowFilter() {
+        return rowFilter;
+    }
+
+    public void setRowFilter(GIERowFilter rowFilter) {
+        this.rowFilter = rowFilter;
     }
 
     public static void main(String[] args) {

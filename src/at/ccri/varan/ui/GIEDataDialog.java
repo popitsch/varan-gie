@@ -56,20 +56,24 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
+import java.util.Set;
 import java.util.Vector;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
+import javax.swing.Box;
 import javax.swing.DefaultCellEditor;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JColorChooser;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -86,10 +90,14 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
+import javax.swing.table.TableModel;
+import javax.swing.table.TableRowSorter;
 
 import org.apache.log4j.Logger;
 import org.broad.igv.Globals;
+import org.broad.igv.event.IGVEventBus;
 import org.broad.igv.event.IGVEventObserver;
+import org.broad.igv.event.ViewChange;
 import org.broad.igv.feature.RegionOfInterest;
 import org.broad.igv.feature.genome.GenomeManager;
 import org.broad.igv.lists.GeneList;
@@ -129,10 +137,25 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
     List<String> columnNames = null;
 
     /**
+     * Maps column names to column indices.
+     */
+    Map<String, Integer> colNameMap = new HashMap<>();
+
+    /**
      * Jtable
      * 
      */
     private JTable table;
+
+    /**
+     * Table sorter.
+     */
+    private TableRowSorter<TableModel> tableSorter;
+
+    /**
+     * Apply filter checkbox
+     */
+    private JCheckBox useFilter;
 
     /**
      * Layers combo box
@@ -151,13 +174,13 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
     public static boolean blockReload = false;
 
     /**
-     * Rename layer button
+     * Rename layer menu
      */
-    private JButton renLay;
+    private JMenuItem renLayerM;
     /**
      * Delete layer button.
      */
-    private JButton delLay;
+    private JMenuItem delLayerM;
 
     /**
      * Color chooser (stores recent colors)
@@ -301,11 +324,11 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 		layerCombo.setSelectedItem(aln);
 	    }
 	    if (al != null && al.equals(GIEDatasetVersion.defaultLayerName)) {
-		renLay.setEnabled(false);
-		delLay.setEnabled(false);
+		renLayerM.setEnabled(false);
+		delLayerM.setEnabled(false);
 	    } else {
-		renLay.setEnabled(true);
-		delLay.setEnabled(true);
+		renLayerM.setEnabled(true);
+		delLayerM.setEnabled(true);
 	    }
 	    testActionListenerActive = true;
 	}
@@ -314,6 +337,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	resizeColumnWidth(table);
 	table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 	// IGV.getInstance().revalidateTrackPanels();
+
     }
 
     /**
@@ -635,6 +659,149 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	// +++++++++++++++++++++++++++++++++++++++++++++++
 
 	/**
+	 * Menu
+	 * 
+	 */
+	Color MENU_COL = GIEMainDialog.COL_EVEN_ROWS;
+	JColorMenuBar menuBar = new JColorMenuBar();
+	menuBar.setColor(MENU_COL);
+	setJMenuBar(menuBar);
+	// ------------------------------- LAYERS ------------------------------------------------
+	JMenu layerM = new JMenu("Layers");
+	layerM.setOpaque(false);
+	layerM.setBackground(MENU_COL);
+
+	JMenuItem addLayerM = new JMenuItem("Add Layer");
+	addLayerM.setToolTipText("Add a new interval layer");
+	addLayerM.addActionListener(new ActionListener() {
+	    public void actionPerformed(ActionEvent e) {
+		String lname = JOptionPane.showInputDialog(null, "Layer name: ", "");
+		if (lname != null && !lname.trim().equals("")) {
+		    try {
+			GIE.getInstance().getActiveDataset().getCurrentVersion().addLayer(lname);
+
+			// ensure that new table is added to IGV session
+			GIEDatasetVersionLayer layer = GIE.getInstance().getActiveDataset().getCurrentVersion()
+				.getActiveLayer();
+			layer.updateAndSave();
+
+			GIE.getInstance().reloadActiveDataset();
+
+			refresh();
+
+		    } catch (IOException e1) {
+			e1.printStackTrace();
+		    }
+		}
+	    }
+	});
+	layerM.add(addLayerM);
+
+	delLayerM = new JMenuItem("Delete Layer");
+	delLayerM.setToolTipText("Delete this layer. The 'main' layer cannot be deleted.");
+	delLayerM.addActionListener(new ActionListener() {
+	    public void actionPerformed(ActionEvent e) {
+		String lname = getSelectedLayerName();
+		int reply = JOptionPane.showConfirmDialog(null,
+			"Are you sure you want to delete this layer (cannot be undone)?", "Delete Layer",
+			JOptionPane.YES_NO_OPTION);
+		if (reply == JOptionPane.YES_OPTION) {
+		    try {
+			// delete layer
+			GIE.getInstance().getActiveDataset().getCurrentVersion().delLayer(lname);
+			refresh();
+		    } catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		    }
+		}
+	    }
+
+	});
+	delLayerM.setEnabled(false);
+	layerM.add(delLayerM);
+
+	renLayerM = new JMenuItem("Rename Layer");
+	renLayerM.setToolTipText(
+		"Rename current layer. Layer names have to unique within a dataset, the 'main' layer cannot be renamed.");
+	renLayerM.addActionListener(new ActionListener() {
+	    public void actionPerformed(ActionEvent e) {
+		String oldlname = getSelectedLayerName();
+		String lname = JOptionPane.showInputDialog(null, "Layer name: ", oldlname);
+		if (lname != null && !lname.trim().equals("") && !lname.trim().equalsIgnoreCase("main")) {
+		    try {
+			if (!GIE.getInstance().getActiveDataset().getCurrentVersion().renameLayer(oldlname, lname)) {
+			    log.error("Could not rename layer " + oldlname);
+			}
+		    } catch (IOException e1) {
+			log.error("Could not rename layer " + oldlname);
+			e1.printStackTrace();
+		    }
+		    refresh();
+		}
+	    }
+	});
+	renLayerM.setEnabled(false);
+	layerM.add(renLayerM);
+	menuBar.add(layerM);
+	// ------------------------------- LAYERS ------------------------------------------------
+	JMenu impExpM = new JMenu("Import/Export");
+	impExpM.setOpaque(false);
+	impExpM.setBackground(MENU_COL);
+
+	JMenuItem addIntM = new JMenuItem("Add/Import Intervals");
+	addIntM.setToolTipText("Add intervals by manual editing, copy/paste or import from a BED file.");
+	addIntM.addActionListener(new ActionListener() {
+	    public void actionPerformed(ActionEvent e) {
+		new GIEAddIntervalDialog(IGV.getMainFrame());
+	    }
+	});
+	impExpM.add(addIntM);
+	JMenuItem expIntM = new JMenuItem("Export Intervals");
+	expIntM.setToolTipText("Export intervals from selected layers as BED or TSV file.");
+	expIntM.addActionListener(new ActionListener() {
+	    public void actionPerformed(ActionEvent e) {
+		GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer().updateAndSave();
+		new GIEExportDialog(IGV.getMainFrame());
+	    }
+	});
+	impExpM.add(expIntM);
+	menuBar.add(impExpM);
+
+	// ------------------------------- ANNOTATIONS ------------------------------------------------
+	JMenu annoM = new JMenu("Annotations");
+	annoM.setOpaque(false);
+	annoM.setBackground(MENU_COL);
+
+	JMenuItem editAnnoM = new JMenuItem("Edit annotations");
+	editAnnoM.setToolTipText("Add/remove custom annotation fields.");
+	editAnnoM.addActionListener(new ActionListener() {
+	    public void actionPerformed(ActionEvent e) {
+		// show edit annotations dialog.
+		new GIEEditAnnotationsDialog(IGV.getMainFrame());
+		// save to BED and reload
+		GIE.getInstance().reloadActiveDataset();
+	    }
+	});
+	annoM.add(editAnnoM);
+	menuBar.add(annoM);
+
+	// ------------------------------- STATS ------------------------------------------------
+	JMenu statsM = new JMenu("Statistics");
+	statsM.setOpaque(false);
+	statsM.setBackground(MENU_COL);
+
+	JMenuItem calcStatsM = new JMenuItem("Interval Statistics");
+	calcStatsM.setToolTipText("Show basic statistics about the intervals in the selected layer");
+	calcStatsM.addActionListener(new ActionListener() {
+	    public void actionPerformed(ActionEvent e) {
+		new GIEStatsDialog(IGV.getMainFrame());
+	    }
+	});
+	statsM.add(calcStatsM);
+	menuBar.add(statsM);
+
+	/**
 	 * header label
 	 */
 	JPanel panel = new JPanel();
@@ -662,83 +829,6 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	    panel.add(layerCombo);
 	    testActionListenerActive = true;
 
-	    JButton addLay = new JButton("Add Layer");
-	    addLay.setToolTipText("Add a new interval layer");
-	    addLay.setHorizontalAlignment(SwingConstants.LEFT);
-	    panel.add(addLay);
-	    addLay.addActionListener(new ActionListener() {
-		public void actionPerformed(ActionEvent e) {
-		    String lname = JOptionPane.showInputDialog(null, "Layer name: ", "");
-		    if (lname != null && !lname.trim().equals("")) {
-			try {
-			    GIE.getInstance().getActiveDataset().getCurrentVersion().addLayer(lname);
-
-			    // ensure that new table is added to IGV session
-			    GIEDatasetVersionLayer layer = GIE.getInstance().getActiveDataset().getCurrentVersion()
-				    .getActiveLayer();
-			    layer.updateAndSave();
-
-			    GIE.getInstance().reloadActiveDataset();
-
-			    refresh();
-
-			} catch (IOException e1) {
-			    e1.printStackTrace();
-			}
-		    }
-		}
-
-	    });
-	    delLay = new JButton("Delete Layer");
-	    delLay.setToolTipText("Delete this layer. The 'main' layer cannot be deleted.");
-	    delLay.setHorizontalAlignment(SwingConstants.LEFT);
-	    panel.add(delLay);
-	    delLay.addActionListener(new ActionListener() {
-		public void actionPerformed(ActionEvent e) {
-		    String lname = getSelectedLayerName();
-		    int reply = JOptionPane.showConfirmDialog(null,
-			    "Are you sure you want to delete this layer (cannot be undone)?", "Delete Layer",
-			    JOptionPane.YES_NO_OPTION);
-		    if (reply == JOptionPane.YES_OPTION) {
-			try {
-			    // delete layer
-			    GIE.getInstance().getActiveDataset().getCurrentVersion().delLayer(lname);
-			    refresh();
-			} catch (IOException e1) {
-			    // TODO Auto-generated catch block
-			    e1.printStackTrace();
-			}
-		    }
-		}
-
-	    });
-	    delLay.setEnabled(false);
-
-	    renLay = new JButton("Rename Layer");
-	    renLay.setToolTipText(
-		    "Rename this layer. Layer names have to unique within a dataset, the 'main' layer cannot be renamed.");
-	    renLay.setHorizontalAlignment(SwingConstants.LEFT);
-	    panel.add(renLay);
-	    renLay.addActionListener(new ActionListener() {
-		public void actionPerformed(ActionEvent e) {
-		    String oldlname = getSelectedLayerName();
-		    String lname = JOptionPane.showInputDialog(null, "Layer name: ", oldlname);
-		    if (lname != null && !lname.trim().equals("")) {
-			try {
-			    if (!GIE.getInstance().getActiveDataset().getCurrentVersion().renameLayer(oldlname,
-				    lname)) {
-				log.error("Could not rename layer " + oldlname);
-			    }
-			} catch (IOException e1) {
-			    log.error("Could not rename layer " + oldlname);
-			    e1.printStackTrace();
-			}
-			refresh();
-		    }
-		}
-	    });
-	    renLay.setEnabled(false);
-
 	    JButton layDesc = new JButton("Layer Description");
 	    if (GIE.getInstance().getActiveDataset() != null
 		    && GIE.getInstance().getActiveDataset().getCurrentVersion() != null
@@ -754,6 +844,33 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 		    refresh();
 		}
 	    });
+
+	    panel.add(Box.createHorizontalStrut(50));
+
+	    useFilter = new JCheckBox("Filter Intervals");
+	    useFilter.setToolTipText("<html><body>Toggle filter</body></html>");
+	    useFilter.setHorizontalAlignment(SwingConstants.RIGHT);
+	    panel.add(useFilter);
+	    useFilter.addActionListener(new ActionListener() {
+		public void actionPerformed(ActionEvent e) {
+		    GIE.getInstance().getRowFilter().updateCurrentlyVisible();
+		    if (useFilter.isSelected())
+			tableSorter.setRowFilter(GIE.getInstance().getRowFilter());
+		    else
+			tableSorter.setRowFilter(null);
+		}
+	    });
+
+	    JButton filterBut = new JButton("Filter");
+	    filterBut.setToolTipText("<html><body>Configure filter</body></html>");
+	    filterBut.setHorizontalAlignment(SwingConstants.RIGHT);
+	    panel.add(filterBut);
+	    filterBut.addActionListener(new ActionListener() {
+		public void actionPerformed(ActionEvent e) {
+		    new GIEFilterDialog(IGV.getMainFrame());
+		}
+	    });
+
 	}
 
 	columnNames = new ArrayList<>();
@@ -763,13 +880,20 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	for (int w : new int[] { 50, 70, 70, 50, 50, 25, 100, 50, 30, 50 })
 	    columnWidths.add(w);
 	if (GIE.getInstance().getActiveDataset() != null) {
-	    for (String s : GIE.getInstance().getActiveDataset().getCurrentVersion().getDefaultLayer()
+	    for (String s : GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer()
 		    .getAnnotations()) {
 		columnNames.add(s);
 		columnWidths.add(50);
 	    }
 	}
 	min_widths = (Integer[]) columnWidths.toArray(new Integer[columnWidths.size()]);
+
+	// columNames/colindex map
+	for (int i = 0; i < columnNames.size(); i++) {
+	    if (columnNames.get(i).equals(""))
+		continue;
+	    colNameMap.put(columnNames.get(i), i);
+	}
 
 	final class MyTableModel extends DefaultTableModel {
 	    private static final long serialVersionUID = 1L;
@@ -872,6 +996,9 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	 */
 	MyTableModel model = new MyTableModel(columnNames.toArray(), 0);
 	this.table = new JTable(model);
+	this.tableSorter = new TableRowSorter<TableModel>(model);
+	this.tableSorter.setRowFilter(null);
+	this.table.setRowSorter(tableSorter);
 	table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 	table.setRowSelectionAllowed(true);
 	table.setSelectionBackground(Color.red);
@@ -919,96 +1046,10 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	contentPane.add(new JScrollPane(table), BorderLayout.CENTER);
 
 	/**
-	 * Add interval button
+	 * Add button row
 	 */
 	JPanel buttonPane = new JPanel();
 	buttonPane.setLayout(new FlowLayout(FlowLayout.RIGHT));
-	getContentPane().add(buttonPane, BorderLayout.SOUTH);
-	{
-	    JButton but = new JButton("Add/Import Intervals");
-	    but.setToolTipText("Add intervals by manual editing, copy/paste or import from a BED file.");
-	    but.setHorizontalAlignment(SwingConstants.LEFT);
-	    buttonPane.add(but);
-	    but.addActionListener(new ActionListener() {
-		public void actionPerformed(ActionEvent e) {
-		    new GIEAddIntervalDialog(IGV.getMainFrame());
-		}
-
-	    });
-	}
-
-	/**
-	 * Export button
-	 */
-	getContentPane().add(buttonPane, BorderLayout.SOUTH);
-	{
-	    JButton but = new JButton("Export Intervals");
-	    but.setToolTipText("Export intervals from selected layers");
-	    but.setHorizontalAlignment(SwingConstants.LEFT);
-	    buttonPane.add(but);
-	    but.addActionListener(new ActionListener() {
-		public void actionPerformed(ActionEvent e) {
-		    GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer().updateAndSave();
-		    new GIEExportDialog(IGV.getMainFrame());
-		}
-
-	    });
-	}
-
-	/**
-	 * Stats button
-	 */
-	getContentPane().add(buttonPane, BorderLayout.SOUTH);
-	{
-	    JButton but = new JButton("Statistics");
-	    but.setToolTipText("Show some basic statistics about the intervals in the selected layer.");
-	    but.setHorizontalAlignment(SwingConstants.LEFT);
-	    buttonPane.add(but);
-	    but.addActionListener(new ActionListener() {
-		public void actionPerformed(ActionEvent e) {
-		    new GIEStatsDialog(IGV.getMainFrame());
-		}
-
-	    });
-	}
-
-	/**
-	 * Edit annotations button
-	 */
-	getContentPane().add(buttonPane, BorderLayout.SOUTH);
-	{
-	    JButton but = new JButton("Edit annotations");
-	    but.setToolTipText("Add/remove additional annotation fields");
-	    but.setHorizontalAlignment(SwingConstants.LEFT);
-	    buttonPane.add(but);
-	    but.addActionListener(new ActionListener() {
-		public void actionPerformed(ActionEvent e) {
-		    // show edit annotations dialog.
-		    new GIEEditAnnotationsDialog(IGV.getMainFrame());
-		    // save to BED and reload
-		    GIE.getInstance().reloadActiveDataset();
-		}
-
-	    });
-	}
-
-	/**
-	 * Undo button
-	 */
-	getContentPane().add(buttonPane, BorderLayout.SOUTH);
-	{
-	    JButton undoButton = new JButton("UNDO");
-	    undoButton.setHorizontalAlignment(SwingConstants.LEFT);
-	    undoButton.setToolTipText("Undo last action [CTRL-Z]");
-	    buttonPane.add(undoButton);
-	    undoButton.addActionListener(new ActionListener() {
-		public void actionPerformed(ActionEvent e) {
-		    IGV.getInstance().getSession().replaceRegionsOfInterest(UndoHandler.getInstance().undo());
-		    reloadTable();
-		}
-
-	    });
-	}
 
 	/**
 	 * Save track button
@@ -1033,7 +1074,8 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 
 	// register for ROI updates
 	IGV.getInstance().getSession().getRegionsOfInterestObservable().addObserver(this);
-
+	// register for view changes
+	IGVEventBus.getInstance().subscribe(ViewChange.class, this);
     }
 
     private String abbrv(String txt, int max) {
@@ -1047,6 +1089,20 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 
     @Override
     public void receiveEvent(Object event) {
+
+	if (event instanceof ViewChange) {
+	    GIERowFilter filter = GIE.getInstance().getRowFilter();
+	    if (filter.updateCurrentlyVisible())
+		filterUpdate();
+	}
+    }
+
+    public void filterUpdate() {
+	// set row filter
+	GIERowFilter filter = GIE.getInstance().getRowFilter();
+	if (useFilter.isSelected() ) {
+	    tableSorter.setRowFilter(GIE.getInstance().getRowFilter());
+	}
     }
 
     @Override
@@ -1527,6 +1583,18 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	    }
 	}
 
+    }
+
+    public Integer colName2Index(String name) {
+	return colNameMap.get(name);
+    }
+
+    public String colIndex2Name(Integer idx) {
+	return columnNames.get(idx);
+    }
+
+    public Set<String> getColumnNames() {
+	return colNameMap.keySet();
     }
 
     // /**
