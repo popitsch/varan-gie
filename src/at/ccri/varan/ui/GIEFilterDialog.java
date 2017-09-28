@@ -111,7 +111,7 @@ public class GIEFilterDialog extends JDialog implements Observer, IGVEventObserv
     private void init() {
 	// ======== this ========
 	setTitle("VARAN-GIE :: Data Filter");
-	setMinimumSize(new Dimension(550, 250));
+	setMinimumSize(new Dimension(200, 250));
 	setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 
 	// +++++++++++++++++++++++++++++++++++++++++++++++
@@ -125,7 +125,7 @@ public class GIEFilterDialog extends JDialog implements Observer, IGVEventObserv
 	});
 	Integer[] coords = GIE.getInstance().getWindowCoordinates().get("GIEFilterDialog");
 	if (coords == null) {
-	    setPreferredSize(new Dimension(550, 450));
+	    setPreferredSize(new Dimension(200, 450));
 	    setLocationRelativeTo(IGV.getMainFrame());
 	} else {
 	    // check compatibility with actual screen size
@@ -139,9 +139,9 @@ public class GIEFilterDialog extends JDialog implements Observer, IGVEventObserv
 	JPanel formPanel = new JPanel(new SpringLayout());
 
 	// type
-	JLabel l = new JLabel("Scope", JLabel.TRAILING);
+	JLabel l = new JLabel("Scope:");
 	JComboBox<String> scopeSelect = new JComboBox<>(new String[] { "Genome", "Chromosome", "Visible" });
-	System.out.println("SCOPE " + GIE.getInstance().getRowFilter().getScope());
+	//System.out.println("SCOPE " + GIE.getInstance().getRowFilter().getScope());
 	switch (GIE.getInstance().getRowFilter().getScope()) {
 	case GENOME:
 	    scopeSelect.setSelectedItem("Genome");
@@ -266,8 +266,10 @@ public class GIEFilterDialog extends JDialog implements Observer, IGVEventObserv
 	list.setTransferHandler(new ListTransferHandler());
 	JScrollPane sp = new JScrollPane(list);
 	sp.setBorder(new TitledBorder(""));
-	formPanel.add(new JLabel("<html><body>Attribute filters. Reorder with D'n'd.</br>"
-		+ "Attributes:"+ GIEDataDialog.getInstance().getColumnNames()+ "</body></html>", JLabel.LEADING));
+	formPanel.add(new JLabel(
+		"<html><body>Attribute filters. Reorder with D'n'd.<br/>"
+		+ "Example Filters: 'Score>100', 'Chr=12', 'Width>10kb'<br/>"
+		+ "Possible Attributes: "+ GIEDataDialog.getInstance().getColumnNames()+ "</body></html>", JLabel.LEADING));
 	formPanel.add(sp);
 
 	// buttons

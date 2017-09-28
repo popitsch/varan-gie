@@ -73,6 +73,8 @@ public class GIEAboutMenuAction extends MenuAction {
 	    "CTRL-B", "Previous (upstream) region",
 
 	    "CTRL-Z", "Undo last action",
+	    
+	    "CTRL-Y", "Redo last action",
 
 	    "CTRL-C", "Copy region coordinates",
 

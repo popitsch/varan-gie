@@ -160,6 +160,11 @@ public class GIE {
     boolean useFilter;
     
     /**
+     * The last selected dataset category
+     */
+    String selectedDatasetCategory;
+    
+    /**
      * GIE annotation tracks
      */
     List<GIEAnnotationTrack> annotationTracks = new ArrayList<>();
@@ -1382,6 +1387,14 @@ public class GIE {
 
     public void setUseFilter(boolean useFilter) {
         this.useFilter = useFilter;
+    }
+
+    public String getSelectedDatasetCategory() {
+        return selectedDatasetCategory;
+    }
+
+    public void setSelectedDatasetCategory(String selectedDatasetCategory) {
+        this.selectedDatasetCategory = selectedDatasetCategory;
     }
 
     public static void main(String[] args) {

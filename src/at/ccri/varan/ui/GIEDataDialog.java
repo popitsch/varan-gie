@@ -193,7 +193,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
      * For chr sorting
      */
     private CanonicalChromsomeComparator chrComp = new CanonicalChromsomeComparator();
-    
+
     /**
      * Return the active GIEMainDialog. null if none
      *
@@ -283,6 +283,10 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	}
 	if (GIE.getInstance().getActiveDataset() != null) {
 
+	    // // remove filter
+	    // javax.swing.RowFilter<? super TableModel, ? super Integer> filter = tableSorter.getRowFilter();
+	    // tableSorter.setRowFilter(null);
+
 	    List<RegionOfInterest> now = (List<RegionOfInterest>) IGV.getInstance().getSession()
 		    .getAllRegionsOfInterest();
 	    UndoHandler.getInstance().addUndoStep(now);
@@ -308,6 +312,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 		}
 		model.addRow(d.toArray());
 	    }
+	    // tableSorter.setRowFilter(filter);
 	}
 
 	// update layer combobox
@@ -402,28 +407,22 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
      * @return
      * @throws ParseException
      */
-    private Integer parseIntervalWidth(String s) throws ParseException {
-	String[] t = s.split(" ", -1);
+    Integer parseIntervalWidth(String s) throws ParseException {
+	s = s.trim().toLowerCase();
 	double mult = 1;
-	if (t.length > 1) {
-	    switch (t[1].toLowerCase()) {
-	    case "bp":
-		mult = 1;
-		break;
-	    case "kb":
-		mult = 1000;
-		break;
-	    case "mb":
-		mult = 1000000;
-		break;
-	    case "gb":
-		mult = 1000000000;
-		break;
-	    default:
-		throw new ParseException("Unknown unit symbol " + t[1], 0);
-	    }
+	if (s.endsWith("bp")) {
+	    s = s.substring(0, s.length() - 2);
+	} else if (s.endsWith("kb")) {
+	    s = s.substring(0, s.length() - 2);
+	    mult = 1000;
+	} else if (s.endsWith("mb")) {
+	    s = s.substring(0, s.length() - 2);
+	    mult = 1000000;
+	} else if (s.endsWith("gb")) {
+	    s = s.substring(0, s.length() - 2);
+	    mult = 1000000000;
 	}
-	Number n = NumberFormat.getInstance(Locale.US).parse(t[0]);
+	Number n = NumberFormat.getInstance(Locale.US).parse(s);
 	Double d = n.doubleValue() * mult;
 	return d.intValue();
     }

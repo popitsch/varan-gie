@@ -30,7 +30,6 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dialog;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.Frame;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
@@ -52,7 +51,6 @@ import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
-import javax.swing.BoxLayout;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
@@ -65,7 +63,6 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
-import javax.swing.JTextArea;
 import javax.swing.ListSelectionModel;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.UIManager;
@@ -342,7 +339,8 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 	datasetsM.add(impDsM);
 
 	addDsVersionM = new JMenuItem("Add Dataset Version");
-	addDsVersionM.setToolTipText("Add a version to the currently selected dataset. All existing layers will be copied.");
+	addDsVersionM
+		.setToolTipText("Add a version to the currently selected dataset. All existing layers will be copied.");
 	addDsVersionM.addActionListener(new ActionListener() {
 	    public void actionPerformed(ActionEvent e) {
 		// if no selected dataset - do nothing
@@ -433,11 +431,13 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 	catCombo.addActionListener(new ActionListener() {
 	    public void actionPerformed(ActionEvent e) {
 		if (testActionListenerActive) {
-		    // System.out.println("Selected " + catCombo.getSelectedItem());
+		    GIE.getInstance().setSelectedDatasetCategory((String) catCombo.getSelectedItem());
 		    reloadTable();
 		}
 	    }
 	});
+	if (GIE.getInstance().getSelectedDatasetCategory() != null)
+	    catCombo.setSelectedItem(GIE.getInstance().getSelectedDatasetCategory());
 	catPanel.add(catCombo, Component.LEFT_ALIGNMENT);
 	catPanel.add(Box.createVerticalStrut(30));
 	testActionListenerActive = true;
@@ -445,7 +445,7 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 	// dataset description panel
 	descr = new JEditorPane();
 	descr.setPreferredSize(new Dimension(800, 3));
-	//descr.setSize(400, 150);
+	// descr.setSize(400, 150);
 	JScrollPane sp = new JScrollPane(descr);
 	sp.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1, true),
 		"Description"));
@@ -470,7 +470,7 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 	topPanel.add(catPanel, BorderLayout.EAST);
 	topPanel.setMaximumSize(new Dimension(800, 100));
 	topPanel.setPreferredSize(new Dimension(800, 100));
-	
+
 	contentPanel.add(topPanel, BorderLayout.PAGE_START);
 
 	/**
