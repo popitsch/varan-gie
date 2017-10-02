@@ -24,8 +24,8 @@ public class GIEAttributeFilter {
 
     public static String[] OPERATOR_STR = { "=", "!=", ">", "<", ">=", "<=", "&&", "^^" };
 
-    boolean isNumeric;
     
+
     public static String op2str(OPERATOR op) {
 	switch (op) {
 	case EQ:
@@ -51,14 +51,19 @@ public class GIEAttributeFilter {
     OPERATOR operator;
     String valueSer;
     String colName;
+    boolean isNumeric;
+    boolean isPrefix;
+    boolean isContains;
 
     public GIEAttributeFilter(String key, String valueSer, OPERATOR op) throws IOException {
-	if ( !GIEDataDialog.getInstance().colNameMap.containsKey(key) )
+	if (!GIEDataDialog.getInstance().colNameMap.containsKey(key))
 	    throw new IOException("Cannot create filter for unknown attribute " + key);
 	this.colName = key;
 	this.operator = op;
 	this.valueSer = valueSer;
 	this.isNumeric = NumberUtils.isNumber(valueSer);
+	this.isPrefix = valueSer.endsWith("*");
+	this.isContains = valueSer.startsWith("*") && valueSer.endsWith("*");
     }
 
     @Override
@@ -103,12 +108,14 @@ public class GIEAttributeFilter {
 
     public boolean filter(javax.swing.RowFilter.Entry<? extends TableModel, ? extends Object> entry) {
 
-	// If the current dtaaset does not support the attribute: ignore
-	if ( !GIEDataDialog.getInstance().colNameMap.containsKey(colName) )
+	// If the current dataset does not support the attribute: ignore
+	if (GIEDataDialog.getInstance() == null
+		|| !GIEDataDialog.getInstance().colNameMap.containsKey(colName))
 	    return true;
-	
+
 	// value of the interval
 	int colidx = GIEDataDialog.getInstance().colName2Index(colName);
+
 	Object val = entry.getValue(colidx);
 	if (colidx == GIEDataDialog.COLIDX_Width) {
 	    try {
@@ -118,17 +125,21 @@ public class GIEAttributeFilter {
 		return false;
 	    }
 	}
-	if ( isNumeric && ! (val instanceof Integer) && !val.equals("")) {
+
+	/**
+	 * Convert to int if possible
+	 */
+	if (isNumeric && (val instanceof String) && !val.equals("")) {
 	    // try to convert to a number?
 	    try {
-	    Integer test = NumberUtils.createInteger((String) val);
-	    if ( test != null )
-		val = test;
+		Integer test = NumberUtils.createInteger((String) val);
+		if (test != null)
+		    val = test;
 	    } catch (NumberFormatException ex) {
 		//
 	    }
 	}
-	    
+
 	switch (this.operator) {
 	case FLAGSET:
 	case FLAGUNSET:
@@ -143,14 +154,13 @@ public class GIEAttributeFilter {
 	    if (colidx == GIEDataDialog.COLIDX_Width) {
 		try {
 		    compValue = GIEDataDialog.getInstance().parseIntervalWidth(valueSer);
-		    System.out.println(valueSer + " => " + compValue);
 		} catch (ParseException e) {
 		    log.error("Error parsing length value: " + e.getMessage());
 		    return false;
 		}
 	    } else
 		compValue = Integer.parseInt(valueSer);
-	    
+
 	    switch (this.operator) {
 	    case GT:
 		return ((Integer) val) > (compValue);
@@ -169,6 +179,27 @@ public class GIEAttributeFilter {
 	    case FLAGUNSET:
 		return (((Integer) val).intValue() & (compValue)) != compValue;
 	    }
+	} else if (val instanceof Double) {
+	    // filter value
+	    Double compValue = Double.parseDouble(valueSer);
+
+	    switch (this.operator) {
+	    case GT:
+		return ((Double) val) > (compValue);
+	    case GTE:
+		return ((Double) val) >= (compValue);
+	    case LT:
+		return ((Double) val) < (compValue);
+	    case LTE:
+		return ((Double) val) <= (compValue);
+	    case EQ:
+		return ((Double) val).equals((compValue));
+	    case NEQ:
+		return !((Double) val).equals((compValue));
+	    case FLAGSET: // TODO undefined
+	    case FLAGUNSET:
+		return true;
+	    }
 	} else if (val instanceof String) {
 	    switch (this.operator) {
 	    case GT:
@@ -180,9 +211,22 @@ public class GIEAttributeFilter {
 	    case LTE:
 		return ((String) val).compareTo(valueSer) <= 0;
 	    case EQ:
-		return ((String) val).equals(valueSer);
+		String v = ((String) val);
+		if ( isContains )
+		    return v.contains( valueSer.substring(1, valueSer.length()-1));
+		if ( isPrefix )
+		    return v.startsWith(valueSer.substring(0, valueSer.length()-1));
+		return v.equals(valueSer);
 	    case NEQ:
+		v = ((String) val);
+		if ( isContains )
+		    return !v.contains( valueSer.substring(1, valueSer.length()-1));
+		if ( isPrefix )
+		    return ! v.startsWith(valueSer.substring(0, valueSer.length()-1));
 		return !((String) val).equals(valueSer);
+	    case FLAGSET: // TODO undefined
+	    case FLAGUNSET:
+		return true;
 	    }
 	} else
 	    try {

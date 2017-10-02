@@ -273,82 +273,89 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	if (blockReload)
 	    return;
 
-	// *******************
-	setUpComboColumn(table, table.getColumnModel().getColumn(COLIDX_Chr), IGV.getInstance().getChromNamesArray(),
-		null);
+	java.awt.EventQueue.invokeLater(new Runnable() {
+	    public void run() {
+		// *******************
+		setUpComboColumn(table, table.getColumnModel().getColumn(COLIDX_Chr),
+			IGV.getInstance().getChromNamesArray(), null);
 
-	DefaultTableModel model = (DefaultTableModel) table.getModel();
-	for (int i = model.getRowCount() - 1; i >= 0; i--) {
-	    model.removeRow(i);
-	}
-	if (GIE.getInstance().getActiveDataset() != null) {
-
-	    // // remove filter
-	    // javax.swing.RowFilter<? super TableModel, ? super Integer> filter = tableSorter.getRowFilter();
-	    // tableSorter.setRowFilter(null);
-
-	    List<RegionOfInterest> now = (List<RegionOfInterest>) IGV.getInstance().getSession()
-		    .getAllRegionsOfInterest();
-	    UndoHandler.getInstance().addUndoStep(now);
-
-	    // load from regions of interest
-	    for (RegionOfInterest r : now) {
-		List<Object> d = new ArrayList<>();
-		// NOTE: display a normalized version of the chr string for hg19
-		boolean defGenome = GenomeManager.getInstance().getCurrentGenome().getId()
-			.equals(Globals.DEFAULT_GENOME);
-		for (Object o : new Object[] {
-			defGenome ? CanonicalChromsomeComparator.getCanonicalMappingHuman(r.getChr()) : r.getChr(),
-			r.getStart(), r.getEnd(), getIntervalWidth(r.getEnd() - r.getStart()), "View", "Delete",
-			(r.getDescription() == null ? "-" : r.getDescription()),
-			(r.getScore() == null ? "-" : r.getScore()), (r.getStrand() == null ? "0" : r.getStrand()),
-			(r.getColor() == null ? "-" : r.getColor()) })
-		    d.add(o);
-
-		for (String s : GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer()
-			.getAnnotations()) {
-		    String v = r.getAnnotation(s);
-		    d.add(v == null ? "" : v);
+		DefaultTableModel model = (DefaultTableModel) table.getModel();
+		for (int i = model.getRowCount() - 1; i >= 0; i--) {
+		    model.removeRow(i);
 		}
-		model.addRow(d.toArray());
-	    }
-	    // tableSorter.setRowFilter(filter);
-	}
+		if (GIE.getInstance().getActiveDataset() != null) {
 
-	// update layer combobox
-	if (GIE.getInstance().getActiveDataset() != null) {
-	    testActionListenerActive = false;
-	    layerCombo.removeAllItems();
-	    Iterator<String> lns = GIE.getInstance().getActiveDataset().getCurrentVersion().getLayers().keySet()
-		    .iterator();
-	    String al = GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer().getLayerName();
-	    String aln = null;
-	    int i = 1;
-	    while (lns.hasNext()) {
-		String ln = lns.next();
-		String visibleLn = i + ": " + ln;
-		layerCombo.addItem(visibleLn);
-		if (ln.equals(al))
-		    aln = visibleLn;
-		i++;
-	    }
-	    if (aln != null) {
-		layerCombo.setSelectedItem(aln);
-	    }
-	    if (al != null && al.equals(GIEDatasetVersion.defaultLayerName)) {
-		renLayerM.setEnabled(false);
-		delLayerM.setEnabled(false);
-	    } else {
-		renLayerM.setEnabled(true);
-		delLayerM.setEnabled(true);
-	    }
-	    testActionListenerActive = true;
-	}
+		    // // remove filter
+		    // javax.swing.RowFilter<? super TableModel, ? super Integer> filter = tableSorter.getRowFilter();
+		    // tableSorter.setRowFilter(null);
 
-	model.fireTableDataChanged();
-	resizeColumnWidth(table);
-	table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-	// IGV.getInstance().revalidateTrackPanels();
+		    List<RegionOfInterest> now = (List<RegionOfInterest>) IGV.getInstance().getSession()
+			    .getAllRegionsOfInterest();
+		    UndoHandler.getInstance().addUndoStep(now);
+
+		    // load from regions of interest
+		    for (RegionOfInterest r : now) {
+			List<Object> d = new ArrayList<>();
+			// NOTE: display a normalized version of the chr string for hg19
+			boolean defGenome = GenomeManager.getInstance().getCurrentGenome().getId()
+				.equals(Globals.DEFAULT_GENOME);
+			for (Object o : new Object[] {
+				defGenome ? CanonicalChromsomeComparator.getCanonicalMappingHuman(r.getChr())
+					: r.getChr(),
+				r.getStart(), r.getEnd(), getIntervalWidth(r.getEnd() - r.getStart()), "View", "Delete",
+				(r.getDescription() == null ? "-" : r.getDescription()),
+				(r.getScore() == null ? 0d : r.getScore()),
+				(r.getStrand() == null ? "0" : r.getStrand()),
+				(r.getColor() == null ? "-" : r.getColor()) })
+			    d.add(o);
+
+			for (String s : GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer()
+				.getAnnotations()) {
+			    String v = r.getAnnotation(s);
+			    d.add(v == null ? "" : v);
+			}
+			model.addRow(d.toArray());
+		    }
+		    // tableSorter.setRowFilter(filter);
+		}
+
+		// update layer combobox
+		if (GIE.getInstance().getActiveDataset() != null) {
+		    testActionListenerActive = false;
+		    layerCombo.removeAllItems();
+		    Iterator<String> lns = GIE.getInstance().getActiveDataset().getCurrentVersion().getLayers().keySet()
+			    .iterator();
+		    String al = GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer()
+			    .getLayerName();
+		    String aln = null;
+		    int i = 1;
+		    while (lns.hasNext()) {
+			String ln = lns.next();
+			String visibleLn = i + ": " + ln;
+			layerCombo.addItem(visibleLn);
+			if (ln.equals(al))
+			    aln = visibleLn;
+			i++;
+		    }
+		    if (aln != null) {
+			layerCombo.setSelectedItem(aln);
+		    }
+		    if (al != null && al.equals(GIEDatasetVersion.defaultLayerName)) {
+			renLayerM.setEnabled(false);
+			delLayerM.setEnabled(false);
+		    } else {
+			renLayerM.setEnabled(true);
+			delLayerM.setEnabled(true);
+		    }
+		    testActionListenerActive = true;
+		}
+
+		model.fireTableDataChanged();
+		resizeColumnWidth(table);
+		table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+		// IGV.getInstance().revalidateTrackPanels();
+	    }
+	});
 
     }
 
@@ -733,7 +740,6 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 			GIE.getInstance().getActiveDataset().getCurrentVersion().delLayer(lname);
 			refresh();
 		    } catch (IOException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		    }
 		}
@@ -937,9 +943,22 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 		return rowVector.elementAt(column);
 	    }
 
+	    @Override
+	    public Class<?> getColumnClass(int columnIndex) {
+		switch (columnIndex) {
+		case COLIDX_Start:
+		case COLIDX_End:
+		    return Integer.class;
+		case COLIDX_Score:
+		    return Double.class;
+		default:
+		    return String.class;
+		}
+	    }
+
 	    public void setValueAt(Object value, int row, int col) {
 		RegionOfInterest r = getSelectedRegion(row);
-		String v = (String) value;
+		String v = value.toString();
 		if (r == null)
 		    return;
 
@@ -1017,6 +1036,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	/**
 	 * SET UP TABLE
 	 */
+	System.out.println("SET UP TABLE WITH " + columnNames.size());
 	MyTableModel model = new MyTableModel(columnNames.toArray(), 0);
 	this.table = new JTable(model);
 	this.tableSorter = new TableRowSorter<TableModel>(model);
@@ -1025,7 +1045,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	this.tableSorter.setComparator(COLIDX_Chr, new ChrComparator());
 	this.tableSorter.setComparator(COLIDX_Start, new IntComparator());
 	this.tableSorter.setComparator(COLIDX_End, new IntComparator());
-	this.tableSorter.setComparator(COLIDX_Score, new IntComparator());
+	this.tableSorter.setComparator(COLIDX_Score, new DoubleComparator());
 	this.tableSorter.setComparator(COLIDX_Width, new WidthComparator());
 
 	table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
@@ -1056,8 +1076,6 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	    private static final long serialVersionUID = 1L;
 
 	    public void actionPerformed(ActionEvent e) {
-		JTable table = (JTable) e.getSource();
-		int[] selectedRows = getSelectedRows();
 		navigateTo(getSelectedRegions());
 	    }
 
@@ -1069,7 +1087,6 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	    private static final long serialVersionUID = 1L;
 
 	    public void actionPerformed(ActionEvent e) {
-		JTable table = (JTable) e.getSource();
 		List<RegionOfInterest> selectedRegions = getSelectedRegions();
 		IGV.getInstance().getSession().removeROI(selectedRegions);
 		reloadTable();
@@ -1173,7 +1190,8 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	    return;
 	String chr = null, label = null;
 	Integer start = null, end = null;
-	String color = null, strand = null, score = null;
+	String color = null, strand = null;
+	Double score = null;
 	Map<String, String> mergedAnnotations = new HashMap<>();
 	for (RegionOfInterest r : selectedRegions) {
 	    if (chr == null)
@@ -1199,7 +1217,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	    if (score == null)
 		score = r.getScore();
 	    else if (r.getScore() != null && !score.equals(r.getScore()))
-		score = "-";
+		score = (score + r.getScore()) / 2d; // mean score
 
 	    if (color == null)
 		color = r.getColor();
@@ -1427,7 +1445,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 			    int[] selectedRows = table.getSelectedRows();
 			    if (selectedRows.length > 0) {
 				List<RegionOfInterest> selectedRegions = getSelectedRegions();
-				String prev = selectedRegions.size() == 1 ? selectedRegions.get(0).getScore() : "1000";
+				Double prev = selectedRegions.size() == 1 ? selectedRegions.get(0).getScore() : 1000d;
 				String score = JOptionPane.showInputDialog(null, "Score to set: ", prev);
 				if (score != null) {
 				    for (RegionOfInterest r : selectedRegions)
@@ -1621,6 +1639,8 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
     }
 
     public Integer colName2Index(String name) {
+	if (!colNameMap.containsKey(name))
+	    System.err.println("Unknown column " + name);
 	return colNameMap.get(name);
     }
 
@@ -1649,6 +1669,17 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
     private class IntComparator implements Comparator<Integer> {
 
 	public int compare(Integer o1, Integer o2) {
+	    return o1.compareTo(o2);
+	}
+
+    }
+
+    /**
+     * For col sorting
+     */
+    private class DoubleComparator implements Comparator<Double> {
+
+	public int compare(Double o1, Double o2) {
 	    return o1.compareTo(o2);
 	}
 

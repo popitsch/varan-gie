@@ -141,7 +141,7 @@ public class GIEFilterDialog extends JDialog implements Observer, IGVEventObserv
 	// type
 	JLabel l = new JLabel("Scope:");
 	JComboBox<String> scopeSelect = new JComboBox<>(new String[] { "Genome", "Chromosome", "Visible" });
-	//System.out.println("SCOPE " + GIE.getInstance().getRowFilter().getScope());
+	// System.out.println("SCOPE " + GIE.getInstance().getRowFilter().getScope());
 	switch (GIE.getInstance().getRowFilter().getScope()) {
 	case GENOME:
 	    scopeSelect.setSelectedItem("Genome");
@@ -266,10 +266,9 @@ public class GIEFilterDialog extends JDialog implements Observer, IGVEventObserv
 	list.setTransferHandler(new ListTransferHandler());
 	JScrollPane sp = new JScrollPane(list);
 	sp.setBorder(new TitledBorder(""));
-	formPanel.add(new JLabel(
-		"<html><body>Attribute filters. Reorder with D'n'd.<br/>"
-		+ "Example Filters: 'Score>100', 'Chr=12', 'Width>10kb'<br/>"
-		+ "Possible Attributes: "+ GIEDataDialog.getInstance().getColumnNames()+ "</body></html>", JLabel.LEADING));
+	formPanel.add(new JLabel("<html><body>Attribute filters. Reorder with D'n'd.<br/>"
+		+ "Example Filters: 'Score>100', 'Chr=12', 'Width>10kb'<br/>" + "Possible Attributes: "
+		+ GIEDataDialog.getInstance().getColumnNames() + "</body></html>", JLabel.LEADING));
 	formPanel.add(sp);
 
 	// buttons
@@ -296,6 +295,22 @@ public class GIEFilterDialog extends JDialog implements Observer, IGVEventObserv
 	    }
 	});
 	p3.add(dbut);
+	p3.add(Box.createHorizontalStrut(10));
+	JButton ebut = new JButton("Edit");
+	ebut.addActionListener(new ActionListener() {
+	    @Override
+	    public void actionPerformed(ActionEvent e) {
+		if (!list.isSelectionEmpty()) {
+		    int idx = list.getSelectedIndex();
+		    String prev = list.getSelectedValue();
+		    String key = JOptionPane.showInputDialog("Filter", prev);
+		    if (key != null) {
+			listModel.setElementAt(key, idx);
+		    }
+		}
+	    }
+	});
+	p3.add(ebut);
 	formPanel.add(p3);
 
 	// JCheckBox ucscNoHeader = new JCheckBox("Do not write header");

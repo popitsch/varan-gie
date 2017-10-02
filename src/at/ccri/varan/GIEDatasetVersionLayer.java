@@ -189,6 +189,37 @@ public class GIEDatasetVersionLayer {
     }
 
     /**
+     * Estimates the "width" of a vcf variant (the maximum extension).
+     * 
+     * @return
+     */
+    private int getVCFVariantWidth(String ref, String alt) {
+	if (alt == null)
+	    return 1;
+	int width = 1;
+	for (String aa : alt.split(",")) {
+	    if (ref.startsWith(aa)) {
+		// this is a deletion
+		return 1;
+	    } else if (aa.startsWith(ref)) {
+		// this is an insertion
+		width = Math.max(width, aa.length() - ref.length());
+	    } else {
+		// an SNV or MNP
+		if (ref.length() == aa.length())
+		    width = ref.length();
+		else
+		    width = Math.max(width, aa.length() - ref.length());
+	    }
+	}
+	return width;
+    }
+
+    private boolean isPass(String filter) {
+	return !(filter.equals("PASS") || filter.equals("."));
+    }
+
+    /**
      * Import data from external file and load into layer.
      * 
      * @return
@@ -196,7 +227,7 @@ public class GIEDatasetVersionLayer {
      */
     public SortedSet<RegionOfInterest> importAndLoad(File importLayerFile) throws IOException {
 	// import layer data / copy and normalize file.
-	
+
 	BufferedReader reader = null;
 	PrintWriter out = null;
 	try {
@@ -204,47 +235,103 @@ public class GIEDatasetVersionLayer {
 	    out.println("track name=\"" + getVersion().getDataset().getName() + "." + getVersion().getVersionName()
 		    + "." + layerName + "\" description=\"GIE data track\" visibility=1 useScore=1 itemRgb=\"On\"");
 	    if (importLayerFile != null) {
-		if (importLayerFile.getName().endsWith(".gz"))
+		String fileType = null;
+		String ifn = importLayerFile.getName().toLowerCase();
+		if (ifn.endsWith(".gz")) {
 		    reader = new BufferedReader(
 			    new InputStreamReader(new GZIPInputStream(new FileInputStream(importLayerFile))));
-		else
+		    if (ifn.endsWith(".bed.gz"))
+			fileType = "bed";
+		    else if (ifn.endsWith(".vcf.gz"))
+			fileType = "vcf";
+		} else {
 		    reader = new BufferedReader(new InputStreamReader(new FileInputStream(importLayerFile)));
+		    if (ifn.endsWith(".bed"))
+			fileType = "bed";
+		    else if (ifn.endsWith(".vcf"))
+			fileType = "vcf";
+		}
 
 		String nextLine;
 		int c = 0;
 		Genome g = GenomeManager.getInstance().getCurrentGenome();
-		while ((nextLine = reader.readLine()) != null && (nextLine.trim().length() > 0)) {
-		    c++;
-		    String[] t = nextLine.split("\t");
-		    if (t[0].startsWith("track") || t[0].startsWith("browser ")) {
-			// FIXME: parse description if any
-			continue;
-		    }
-		    if (t.length < 4)
-			throw new IOException("Wrong format. Not a BED file?");
-		    String chr = t[0];
-		    if (g != null)
-			chr = g.getCanonicalChrName(chr);
-		    String start = t[1];
-		    String end = t[2];
-		    String id = t.length >= 4 ? t[3] : c + "F";
-		    String score = t.length >= 5 ? t[4] : "0";
-		    String strand = t.length >= 6 ? t[5] : "+";
-		    String col = "128,128,128";
-		    out.println(chr + "\t" + start + "\t" + end + "\t" + id + "\t" + score + "\t" + strand + "\t"
-			    + start + "\t" + end + "\t" + col);
 
-		    if (c == 10000) {
-			int reply = JOptionPane.showConfirmDialog(null,
-				"File contains a large number of intervals (>10000). "
-					+ "It is not recommended to run GIE with such large interval sets. "
-					+ "Continue importing?",
-				"Confirmation Dialog", JOptionPane.YES_NO_OPTION);
-			if (reply != JOptionPane.YES_OPTION) {
-			    break;
+		if (fileType.equals("bed")) {
+		    /********
+		     * BED files
+		     */
+		    while ((nextLine = reader.readLine()) != null && (nextLine.trim().length() > 0)) {
+			c++;
+			String[] t = nextLine.split("\t");
+			if (t[0].startsWith("track") || t[0].startsWith("browser ")) {
+			    // FIXME: parse description if any
+			    continue;
+			}
+			if (t.length < 4)
+			    throw new IOException("Wrong format. Not a BED file?");
+			String chr = t[0];
+			if (g != null)
+			    chr = g.getCanonicalChrName(chr);
+			String start = t[1];
+			String end = t[2];
+			String id = t.length >= 4 ? t[3] : c + "F";
+			String score = t.length >= 5 ? t[4] : "0";
+			String strand = t.length >= 6 ? t[5] : "+";
+			String col = "128,128,128";
+			out.println(chr + "\t" + start + "\t" + end + "\t" + id + "\t" + score + "\t" + strand + "\t"
+				+ start + "\t" + end + "\t" + col);
+
+			if (c == 10000) {
+			    int reply = JOptionPane.showConfirmDialog(null,
+				    "File contains a large number of intervals (>10000). "
+					    + "It is not recommended to run GIE with such large interval sets. "
+					    + "Continue importing?",
+				    "Confirmation Dialog", JOptionPane.YES_NO_OPTION);
+			    if (reply != JOptionPane.YES_OPTION) {
+				break;
+			    }
+			}
+		    } // bed
+		} else if (fileType.equals("vcf")) {
+		    /********
+		     * VCF files
+		     */
+		    while ((nextLine = reader.readLine()) != null && (nextLine.trim().length() > 0)) {
+			c++;
+			String[] t = nextLine.split("\t");
+			if (t[0].startsWith("#") || t[0].startsWith("browser ")) {
+			    // FIXME: parse description if any
+			    continue;
+			}
+			if (t.length < 4)
+			    throw new IOException("Wrong format. Not a VCF file?");
+			String chr = t[0];
+			if (g != null)
+			    chr = g.getCanonicalChrName(chr);
+			Integer pos = Integer.parseInt(t[1]);
+			String id = t[2];
+			String ref = t[3];
+			String alt = t[4];
+			String qual = t[5];
+			String filter = t[6];
+			int score = (isPass(filter) ? 1000 : 0);
+			String col = (isPass(filter) ? "0,0,0" : "128,128,128");
+			out.println(chr + "\t" + pos + "\t" + (pos + getVCFVariantWidth(ref, alt)) + "\t"
+				+ (ref + ">" + alt + " " + id) + "\t" + score + "\t0\t" + pos + "\t"
+				+ (pos + getVCFVariantWidth(ref, alt)) + "\t" + col);
+
+			if (c == 10000) {
+			    int reply = JOptionPane.showConfirmDialog(null,
+				    "File contains a large number of intervals (>10000). "
+					    + "It is not recommended to run GIE with such large interval sets. "
+					    + "Continue importing?",
+				    "Confirmation Dialog", JOptionPane.YES_NO_OPTION);
+			    if (reply != JOptionPane.YES_OPTION) {
+				break;
+			    }
 			}
 		    }
-		}
+		} // vcf
 	    }
 	} catch (Exception e) {
 	    // delete outfile

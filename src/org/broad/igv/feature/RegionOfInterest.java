@@ -29,6 +29,7 @@ import java.awt.Color;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.lang.math.NumberUtils;
 import org.broad.igv.feature.genome.ChromosomeNameComparator;
 
 /**
@@ -47,7 +48,7 @@ public class RegionOfInterest implements Comparable<RegionOfInterest> {
 
     // np
     private String strand = null; // default strand is null
-    private String score = "0"; // default score is 0 to enable proper IGV rendering
+    private Double score = 0d; // default score is 0 to enable proper IGV rendering
     private String color;
 
     /**
@@ -101,7 +102,7 @@ public class RegionOfInterest implements Comparable<RegionOfInterest> {
 	sb.append("<html><body>");
 	sb.append("<b>" + (description == null ? chr + ":" + getDisplayStart() + "-" + getDisplayEnd() : description)
 		+ "</b><br/>");
-	if (!score.equals("0"))
+	if (score!=0d)
 	    sb.append("score=" + score + "<br/>");
 	if (strand != null && !strand.equals("0"))
 	    sb.append("strand=" + strand + "<br/>");
@@ -283,16 +284,27 @@ public class RegionOfInterest implements Comparable<RegionOfInterest> {
 	return description;
     }
 
-    public String getScore() {
+    public Double getScore() {
 	return score;
     }
 
+    public void setScore(Double score) {
+	this.score = score;
+    }
+    
     public void setScore(String score) {
 	if (score == null || score.equals("-") || score.equalsIgnoreCase("NA") || score.equalsIgnoreCase("null")
 		|| score.equalsIgnoreCase("NaN"))
 	    this.score = null;
-	else
-	    this.score = score;
+	else {
+	    try {
+		Double test = NumberUtils.createDouble(score);
+		if (test != null)
+		    this.score = test;
+	    } catch (NumberFormatException ex) {
+		this.score = null;
+	    }
+	}
     }
 
     public String getStrand() {

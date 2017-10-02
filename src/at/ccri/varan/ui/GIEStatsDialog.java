@@ -109,7 +109,7 @@ public class GIEStatsDialog extends JDialog {
      */
     private void init() {
 	setTitle("VARAN-GIE :: Statistics");
-	setMinimumSize(new Dimension(500, 500));
+	setMinimumSize(new Dimension(500, 520));
 	setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 	// +++++++++++++++++++++++++++++++++++++++++++++++
 	// set location on screen
@@ -123,7 +123,7 @@ public class GIEStatsDialog extends JDialog {
 	});
 	Integer[] coords = GIE.getInstance().getWindowCoordinates().get("GIEStatsDialog");
 	if (coords == null) {
-	    setPreferredSize(new Dimension(500, 500));
+	    setPreferredSize(new Dimension(500, 520));
 	    setLocationRelativeTo(IGV.getMainFrame());
 	} else {
 	    // check compatibility with actual screen size
@@ -222,7 +222,7 @@ public class GIEStatsDialog extends JDialog {
 	buttonPanel.add(Box.createHorizontalGlue());
 	buttonPanel.add(buttonOk);
 
-	add(formPanel, BorderLayout.NORTH);
+	add(formPanel, BorderLayout.CENTER);
 	add(buttonPanel, BorderLayout.SOUTH);
 
 	pack();

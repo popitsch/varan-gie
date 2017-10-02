@@ -679,6 +679,12 @@ public class GIE {
 	save();
 	return true;
     }
+    
+    public GIEDatasetVersionLayer getDatasetMainLayer(String name) {
+	GIEDataset ds = datasets.get(name);
+	if ( ds == null) return null;
+	return ds.getLatestCreatedVersion().getDefaultLayer();
+    }
 
     public boolean exportDataset(String name, File outFile) throws IOException {
 	List<String> names = new ArrayList<>();
@@ -1201,10 +1207,10 @@ public class GIE {
      * @param alt
      * @return
      */
-    private String noNullNoTab(String t, String alt) {
+    private String noNullNoTab(Object t, String alt) {
 	if (t == null)
 	    return alt;
-	return t.replaceAll("\t", "");
+	return t.toString().replaceAll("\t", "");
     }
 
     /**

@@ -95,7 +95,7 @@ public class GIENewDatasetDialog extends JDialog {
 
     // category text field + autocompletion
     private JTextField textField0;
-    private AutoCompletionListener autoComplete = new AutoCompletionListener(textField0, GIE.getInstance().getCategories());
+    private AutoCompletionListener autoComplete;
 
     public GIENewDatasetDialog(Frame owner) {
 	super(owner, "New Dataset", true);
@@ -156,6 +156,7 @@ public class GIENewDatasetDialog extends JDialog {
 	// category
 	JLabel l1 = new JLabel("Category", JLabel.TRAILING);
 	textField0 = new JTextField(20);
+	autoComplete = new AutoCompletionListener(textField0, GIE.getInstance().getCategories());
 	l1.setLabelFor(textField0);
 	formPanel.add(l1);
 	formPanel.add(textField0);
@@ -181,13 +182,13 @@ public class GIENewDatasetDialog extends JDialog {
 	JTextField textField2 = new JTextField(35);
 	// textField2.setEditable(false);
 	p2.add(textField2, BorderLayout.LINE_START);
-	JButton fileBut = new JButton("Select BED File...");
+	JButton fileBut = new JButton("Select BED/VCF ...");
 	fileBut.addActionListener(new ActionListener() {
 	    @Override
 	    public void actionPerformed(ActionEvent e) {
 		JFileChooser fc = new JFileChooser();
-		FileFilter filter = new FileNameExtensionFilter("BED Files", "bed", "bed.gz");
-		fc.setFileFilter(filter);
+		FileFilter filter = new FileNameExtensionFilter("BED+VCF Files", "bed", "vcf", "gz");
+		fc.setFileFilter( filter);
 		if (GIE.getInstance().getLastAccessedDirectories().get("GIENewDatasetDialog") != null)
 		    fc.setCurrentDirectory(GIE.getInstance().getLastAccessedDirectories().get("GIENewDatasetDialog"));
 		int result = fc.showOpenDialog(null);
@@ -316,7 +317,7 @@ public class GIENewDatasetDialog extends JDialog {
 	list.setTransferHandler(new ListTransferHandler());
 
 	JScrollPane sp = new JScrollPane(list);
-	sp.setBorder(new TitledBorder("NOTE that this list is fixed once a dataset was created"));
+	sp.setBorder(new TitledBorder("NOTE that annotations are layer-specific"));
 	l5.setLabelFor(sp);
 	formPanel.add(l5);
 	formPanel.add(sp);

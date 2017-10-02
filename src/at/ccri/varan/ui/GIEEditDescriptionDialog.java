@@ -133,7 +133,7 @@ public class GIEEditDescriptionDialog extends JDialog {
 	formPanel.add(l);
 
 	// descr
-	textArea = new JTextArea(27, 20);
+	textArea = new JTextArea(25, 20);
 	textArea.setBorder(BorderFactory.createLineBorder(Color.BLACK));
 	textArea.setText(GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer().getDescription());
 

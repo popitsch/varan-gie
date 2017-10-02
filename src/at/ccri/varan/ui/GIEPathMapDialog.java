@@ -309,9 +309,7 @@ public class GIEPathMapDialog extends JDialog {
 		});
 
 		fDialog.setCurrentDirectory(lastDir);
-		// *!!*!*!*!*!*!*!
-		// int userSelection = fDialog.showSaveDialog(IGV.getMainFrame());
-		int userSelection = fDialog.showSaveDialog(null);
+		int userSelection = fDialog.showOpenDialog(null);
 		if (userSelection == JFileChooser.APPROVE_OPTION) {
 		    File fin = fDialog.getSelectedFile();
 		    String remotePath = (String) table.getModel().getValueAt(row, COLIDX_REMOTEPATH);

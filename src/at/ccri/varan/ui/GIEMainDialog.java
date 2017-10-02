@@ -312,20 +312,53 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 	});
 	datasetsM.add(newDsM);
 
+	JMenuItem impTsvM = new JMenuItem("Create From TSV");
+	impTsvM.setToolTipText("Import dataset from a TSV file");
+	impTsvM.addActionListener(new ActionListener() {
+	    public void actionPerformed(ActionEvent e) {
+		JFileChooser fDialog = new JFileChooser();
+		fDialog.setDialogTitle("Select TSV File ...");
+		if (GIE.getInstance().getLastAccessedDirectories().get("GIELoadTSVDialog") != null)
+		    fDialog.setCurrentDirectory(GIE.getInstance().getLastAccessedDirectories().get("GIELoadTSVDialog"));
+
+		// fDialog.setFileFilter(new FileNameExtensionFilter("TSV File", "tsv", "tsv.gz"));
+		int userSelection = fDialog.showOpenDialog(IGV.getMainFrame());
+		if (userSelection == JFileChooser.APPROVE_OPTION) {
+		    File fin = fDialog.getSelectedFile();
+		    try {
+			new GIELoadTSVDialog(IGV.getMainFrame(), fin);
+			GIE.getInstance().setLastAccessedDirectory("GIELoadTSVDialog", fin.getParentFile());
+		    } catch (Exception ex) {
+			ex.printStackTrace();
+			JOptionPane.showMessageDialog(null, "<html><body>Could not import from " + fin + "<br/><b>"
+				+ ex.getMessage() + "</b></body></html>", "Import error", JOptionPane.ERROR_MESSAGE);
+		    }
+		}
+	    }
+
+	});
+	datasetsM.add(impTsvM);
+
+	datasetsM.addSeparator();
+
 	JMenuItem impDsM = new JMenuItem("Import Dataset");
 	impDsM.setToolTipText("Import dataset from a VARAN ZIP file");
 	impDsM.addActionListener(new ActionListener() {
 	    public void actionPerformed(ActionEvent e) {
 		JFileChooser fDialog = new JFileChooser();
 		fDialog.setDialogTitle("Import Datasets From...");
+		if (GIE.getInstance().getLastAccessedDirectories().get("GIEImportDatasetDialog") != null)
+		    fDialog.setCurrentDirectory(
+			    GIE.getInstance().getLastAccessedDirectories().get("GIEImportDatasetDialog"));
 		fDialog.setFileFilter(new FileNameExtensionFilter("ZIP File", "zip"));
-		int userSelection = fDialog.showSaveDialog(IGV.getMainFrame());
+		int userSelection = fDialog.showOpenDialog(IGV.getMainFrame());
 		if (userSelection == JFileChooser.APPROVE_OPTION) {
 		    File fin = fDialog.getSelectedFile();
 		    try {
 			if (GIE.getInstance().importDatasets(fin))
 			    JOptionPane.showMessageDialog(null, "Imported datasets from " + fin, "Import information",
 				    JOptionPane.INFORMATION_MESSAGE);
+			GIE.getInstance().setLastAccessedDirectory("GIEImportDatasetDialog", fin.getParentFile());
 			refresh();
 		    } catch (Exception ex) {
 			ex.printStackTrace();
@@ -705,6 +738,9 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 		try {
 		    JFileChooser fDialog = new JFileChooser();
 		    fDialog.setDialogTitle("Export Dataset To...");
+		    if (GIE.getInstance().getLastAccessedDirectories().get("GIEExportDatasetDialog") != null)
+			fDialog.setCurrentDirectory(
+				GIE.getInstance().getLastAccessedDirectories().get("GIEExportDatasetDialog"));
 		    String dsName = (String) table.getModel().getValueAt(row, COLIDX_Name2);
 		    fDialog.setFileFilter(new FileNameExtensionFilter("ZIP File", "zip"));
 		    fDialog.setSelectedFile(new File(URLEncoder.encode(dsName + ".varan.zip", "UTF-8")));
@@ -721,6 +757,7 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 			if (reply == JOptionPane.YES_OPTION) {
 			    log.info("Saving " + dsName + " to file: " + fout.getAbsolutePath());
 			    GIE.getInstance().exportDataset(dsName, fout);
+			    GIE.getInstance().setLastAccessedDirectory("GIEExportDatasetDialog", fout.getParentFile());
 			}
 
 		    }
@@ -739,81 +776,6 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 	JScrollPane tpane = new JScrollPane(table);
 	tpane.setBorder(BorderFactory.createTitledBorder("Datasets"));
 	contentPanel.add(tpane, BorderLayout.CENTER);
-
-	// /**
-	// * buttons
-	// */
-	// JPanel buttonPane = new JPanel();
-	// buttonPane.setLayout(new FlowLayout(FlowLayout.RIGHT));
-	// contentPanel.add(buttonPane, BorderLayout.SOUTH);
-	// {
-	//
-	// JButton addButton = new JButton("New Dataset");
-	// addButton.setToolTipText("Create a new dataset");
-	// addButton.setHorizontalAlignment(SwingConstants.LEFT);
-	// buttonPane.add(addButton);
-	// addButton.addActionListener(new ActionListener() {
-	// public void actionPerformed(ActionEvent e) {
-	// if (GenomeManager.getInstance().getCurrentGenome() == null)
-	// JOptionPane.showMessageDialog(null, "Please select a genome first");
-	// else
-	// new GIENewDatasetDialog(IGV.getMainFrame());
-	// }
-	//
-	// });
-	//
-	// JButton importButton = new JButton("Import Datasets");
-	// importButton.setToolTipText("Import datasets from a VARAN ZIP file");
-	// importButton.setHorizontalAlignment(SwingConstants.LEFT);
-	// buttonPane.add(importButton);
-	// importButton.addActionListener(new ActionListener() {
-	// public void actionPerformed(ActionEvent e) {
-	// JFileChooser fDialog = new JFileChooser();
-	// fDialog.setDialogTitle("Import Datasets From...");
-	// fDialog.setFileFilter(new FileNameExtensionFilter("ZIP File", "zip"));
-	// int userSelection = fDialog.showSaveDialog(IGV.getMainFrame());
-	// if (userSelection == JFileChooser.APPROVE_OPTION) {
-	// File fin = fDialog.getSelectedFile();
-	// try {
-	// if (GIE.getInstance().importDatasets(fin))
-	// JOptionPane.showMessageDialog(null, "Imported datasets from " + fin,
-	// "Import information", JOptionPane.INFORMATION_MESSAGE);
-	// refresh();
-	// } catch (Exception ex) {
-	// ex.printStackTrace();
-	// JOptionPane
-	// .showMessageDialog(
-	// null, "<html><body>Could not import from " + fin + "<br/><b>"
-	// + ex.getMessage() + "</b></body></html>",
-	// "Import error", JOptionPane.ERROR_MESSAGE);
-	// }
-	//
-	// }
-	//
-	// }
-	//
-	// });
-	//
-
-	//
-	// JButton viewIntervalsButton = new JButton("View Intervals");
-	// viewIntervalsButton.setToolTipText("Show the interval window if not visible.");
-	// viewIntervalsButton.setHorizontalAlignment(SwingConstants.RIGHT);
-	// buttonPane.add(viewIntervalsButton);
-	// viewIntervalsButton.addActionListener(new ActionListener() {
-	// public void actionPerformed(ActionEvent e) {
-	// GIEDataDialog ddiag = GIEDataDialog.getInstance(IGV.getMainFrame());
-	// if (ddiag.isVisible()) {
-	// ddiag.pack();
-	// } else {
-	// ddiag.setVisible(true);
-	// ddiag.pack();
-	// }
-	// }
-	//
-	// });
-	//
-	// }
 
 	resizeColumnWidth(table);
 	pack();
@@ -848,53 +810,5 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
     public void update(Observable o, Object arg) {
 	reloadTable();
     }
-
-    // /**
-    // * Popup handler
-    // */
-    // private class MyTablePopupHandler extends MouseAdapter {
-    //
-    // public void mousePressed(MouseEvent e) {
-    // if (SwingUtilities.isRightMouseButton(e)) {
-    // Point p = e.getPoint();
-    // int row = table.rowAtPoint(p);
-    // if (row >= 0) {
-    // JPopupMenu popupMenu = new IGVPopupMenu();
-    // JMenuItem item = new JMenuItem("Rename Dataset");
-    // item.addActionListener(new ActionListener() {
-    // public void actionPerformed(ActionEvent e) {
-    // int row = table.rowAtPoint(p);
-    // if (row > 0) {
-    // System.out.println("row: " + row);
-    // }
-    // }
-    // });
-    // popupMenu.add(item);
-    //
-    // popupMenu.show(table, p.x, p.y);
-    // }
-    // }
-    // }
-    //
-    // }
-
-    // /**
-    // * Launch the application.
-    // */
-    // public static void main(String[] args) {
-    // try {
-    // GIEMainDialog.getInstance(new Frame());
-    // WindowListener exitListener = new WindowAdapter() {
-    // @Override
-    // public void windowClosing(WindowEvent e) {
-    // System.exit(0);
-    // }
-    // };
-    // GIEMainDialog.getInstance().addWindowListener(exitListener);
-    //
-    // } catch (Exception e) {
-    // e.printStackTrace();
-    // }
-    // }
 
 }
