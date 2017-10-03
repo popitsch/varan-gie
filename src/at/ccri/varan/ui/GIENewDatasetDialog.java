@@ -73,6 +73,8 @@ import javax.swing.border.TitledBorder;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.LineIterator;
 import org.broad.igv.ui.IGV;
 
 import at.ccri.varan.GIE;
@@ -188,7 +190,7 @@ public class GIENewDatasetDialog extends JDialog {
 	    public void actionPerformed(ActionEvent e) {
 		JFileChooser fc = new JFileChooser();
 		FileFilter filter = new FileNameExtensionFilter("BED+VCF Files", "bed", "vcf", "gz");
-		fc.setFileFilter( filter);
+		fc.setFileFilter(filter);
 		if (GIE.getInstance().getLastAccessedDirectories().get("GIENewDatasetDialog") != null)
 		    fc.setCurrentDirectory(GIE.getInstance().getLastAccessedDirectories().get("GIENewDatasetDialog"));
 		int result = fc.showOpenDialog(null);
@@ -321,7 +323,7 @@ public class GIENewDatasetDialog extends JDialog {
 	l5.setLabelFor(sp);
 	formPanel.add(l5);
 	formPanel.add(sp);
-	JPanel p3 = new JPanel(new BorderLayout());
+	JPanel p3 = new JPanel();
 	p3.setBorder(BorderFactory.createEmptyBorder(0, 0, 6, 6));
 	p3.setLayout(new BoxLayout(p3, BoxLayout.LINE_AXIS));
 	JButton abut = new JButton("Add");
@@ -352,6 +354,35 @@ public class GIENewDatasetDialog extends JDialog {
 	    }
 	});
 	p3.add(dbut);
+	p3.add(Box.createHorizontalStrut(280));
+	JButton sbut = new JButton("Load Schema...");
+	sbut.addActionListener(new ActionListener() {
+	    @Override
+	    public void actionPerformed(ActionEvent e) {
+		JFileChooser fDialog = new JFileChooser();
+		fDialog.setDialogTitle("Select Schema File ...");
+		fDialog.setFileFilter(new FileNameExtensionFilter("Schema File", "schema", "txt"));
+		int userSelection = fDialog.showOpenDialog(IGV.getMainFrame());
+		if (userSelection == JFileChooser.APPROVE_OPTION) {
+		    File fin = fDialog.getSelectedFile();
+		    LineIterator it;
+		    try {
+			it = FileUtils.lineIterator(fin);
+			while (it.hasNext()) {
+			    String line = it.next();
+			    if (line.startsWith("#"))
+				continue;
+			    listModel.addElement(line);
+			}
+		    } catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		    }
+		}
+
+	    }
+	});
+	p3.add(sbut);
 	JLabel l6 = new JLabel("", JLabel.TRAILING);
 	formPanel.add(l6);
 	formPanel.add(p3);

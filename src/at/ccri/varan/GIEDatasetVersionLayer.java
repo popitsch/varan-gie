@@ -11,8 +11,11 @@ import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.zip.GZIPInputStream;
@@ -23,6 +26,8 @@ import org.broad.igv.feature.RegionOfInterest;
 import org.broad.igv.feature.genome.Genome;
 import org.broad.igv.feature.genome.GenomeManager;
 import org.broad.igv.ui.IGV;
+
+import at.ccri.varan.ui.ROILink;
 
 /**
  * A particular GIE dataset version layer.
@@ -73,6 +78,11 @@ public class GIEDatasetVersionLayer {
      * Last modification date
      */
     String lastModified = null;
+
+    /**
+     * ROI links.
+     */
+    List<ROILink> links = new ArrayList<>();
 
     /**
      * Simple constructor.
@@ -312,7 +322,7 @@ public class GIEDatasetVersionLayer {
 			String id = t[2];
 			String ref = t[3];
 			String alt = t[4];
-			String qual = t[5];
+			// String qual = t[5];
 			String filter = t[6];
 			int score = (isPass(filter) ? 1000 : 0);
 			String col = (isPass(filter) ? "0,0,0" : "128,128,128");
@@ -475,9 +485,45 @@ public class GIEDatasetVersionLayer {
 	this.description = description;
     }
 
+    public List<ROILink> getLinks() {
+	return links;
+    }
+
+    public void addLink(ROILink rl) {
+	links.add(rl);
+
+    }
+
+    public void setLinks(List<ROILink> links) {
+	this.links = links;
+    }
+
+    public Set<RegionOfInterest> getLinkedROIs() {
+	Set<RegionOfInterest> ret = new HashSet<>();
+	for (ROILink rl : getLinks()) {
+	    ret.add(rl.getSource());
+	    ret.add(rl.getTarget());
+	}
+	return ret;
+    }
+    
+    /**
+     * Delete all links containing the passed ROI.F
+     * @param roi
+     */
+    public void deleteLinks(RegionOfInterest roi) {
+	Iterator<ROILink> it = getLinks().iterator();
+	while ( it.hasNext())  {
+	    ROILink rl = it.next();
+	    if ( rl.getSource().equals(roi) || rl.getTarget().equals(roi) )
+		it.remove();
+	}
+    }
+
     @Override
     public String toString() {
 	return "[l" + layerName + "@" + dataFile + "]";
     }
+
 
 }

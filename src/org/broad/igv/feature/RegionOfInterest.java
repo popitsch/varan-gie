@@ -29,8 +29,13 @@ import java.awt.Color;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.math.NumberUtils;
 import org.broad.igv.feature.genome.ChromosomeNameComparator;
+
+import at.ccri.varan.GIE;
+import at.ccri.varan.GIEDatasetVersionLayer;
+import at.ccri.varan.ui.ROILink;
 
 /**
  * @author eflakes
@@ -38,18 +43,17 @@ import org.broad.igv.feature.genome.ChromosomeNameComparator;
 public class RegionOfInterest implements Comparable<RegionOfInterest> {
 
     private String chr;
-    private String description;
+    private transient String description;
     private int start; // In Chromosome coordinates
     private int end; // In Chromosome coordinates
     private static Color backgroundColor = new Color(255, 0, 0);
     private static Color foregroundColor = Color.LIGHT_GRAY;
-    boolean selected = false;
-    private Map<String, String> anno = new HashMap<>();
+    private transient Map<String, String> anno = new HashMap<>();
 
     // np
-    private String strand = null; // default strand is null
-    private Double score = 0d; // default score is 0 to enable proper IGV rendering
-    private String color;
+    private transient String strand = null; // default strand is null
+    private transient Double score = 0d; // default score is 0 to enable proper IGV rendering
+    private transient String color;
 
     /**
      * Clone a roi.
@@ -100,21 +104,41 @@ public class RegionOfInterest implements Comparable<RegionOfInterest> {
 
 	StringBuffer sb = new StringBuffer();
 	sb.append("<html><body>");
-	sb.append("<b>" + (description == null || description.equals("") ? chr + ":" + getDisplayStart() + "-" + getDisplayEnd() : description)
-		+ "</b><br/>");
-	if (score!=0d)
+	sb.append("<b>" + (description == null || description.equals("")
+		? chr + ":" + getDisplayStart() + "-" + getDisplayEnd() : description) + "</b><br/>");
+	if (score != 0d)
 	    sb.append("score=" + score + "<br/>");
 	if (strand != null && !strand.equals("0"))
 	    sb.append("strand=" + strand + "<br/>");
 	if (anno.size() > 0) {
-	    sb.append("<hr/><small>");
+	    boolean wasSep = false;
 	    for (String k : anno.keySet()) {
 		String v = anno.get(k).trim();
-		if (!k.equals("") && !v.equals(""))
-		    sb.append("<small>" + k + "=" + v + "<br/>");
+		if (!k.equals("") && !v.equals("")) {
+		    if (!wasSep) {
+			sb.append("<hr/>");
+			wasSep = true;
+		    }
+
+		    sb.append("<small>" + k + "=" + v + "</small><br/>");
+		}
 	    }
-	    sb.append("</small>");
 	}
+
+	GIEDatasetVersionLayer activeLayer = null;
+	if (GIE.getInstance().getActiveDataset() != null
+		&& GIE.getInstance().getActiveDataset().getCurrentVersion() != null)
+	    activeLayer = GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer();
+	if (activeLayer != null && activeLayer.getLinkedROIs().contains(this)) {
+	    sb.append("<hr/>");
+	    for (ROILink rl : activeLayer.getLinks()) {
+		if (rl.getSource().equals(this))
+		    sb.append("<font color=\"blue\">Linked to region " + rl.getTarget() + "</font>");
+		if (rl.getTarget().equals(this))
+		    sb.append("<font color=\"blue\">Linked to region " + rl.getSource() + "</font>");
+	    }
+	}
+
 	sb.append("</body></html>");
 	return sb.toString();
     }
@@ -291,7 +315,7 @@ public class RegionOfInterest implements Comparable<RegionOfInterest> {
     public void setScore(Double score) {
 	this.score = score;
     }
-    
+
     public void setScore(String score) {
 	if (score == null || score.equals("-") || score.equalsIgnoreCase("NA") || score.equalsIgnoreCase("null")
 		|| score.equalsIgnoreCase("NaN"))
@@ -373,6 +397,20 @@ public class RegionOfInterest implements Comparable<RegionOfInterest> {
 
     public void setAnnotations(Map<String, String> a) {
 	this.anno = a;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+	if (o instanceof RegionOfInterest) {
+	    RegionOfInterest r = (RegionOfInterest) o;
+	    return getChr().equals(r.getChr()) && getStart() == r.getStart() && getEnd() == r.getEnd();
+	}
+	return false;
+    }
+
+    @Override
+    public int hashCode() {
+	return new HashCodeBuilder(17, 31).append(chr).append(start).append(end).toHashCode();
     }
 
     @Override

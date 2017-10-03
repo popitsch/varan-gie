@@ -87,6 +87,7 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.WindowConstants;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
@@ -109,6 +110,7 @@ import org.broad.igv.ui.panel.IGVPopupMenu;
 import at.ccri.varan.GIE;
 import at.ccri.varan.GIEDatasetVersion;
 import at.ccri.varan.GIEDatasetVersionLayer;
+import at.ccri.varan.ui.ROILink.TYPE;
 import at.ccri.varan.util.CanonicalChromsomeComparator;
 
 /**
@@ -196,6 +198,11 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
     private CanonicalChromsomeComparator chrComp = new CanonicalChromsomeComparator();
 
     /**
+     * For creating ROI links.
+     */
+    private RegionOfInterest linkSourceROI = null;
+
+    /**
      * Return the active GIEMainDialog. null if none
      *
      * @return
@@ -276,6 +283,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 
 	java.awt.EventQueue.invokeLater(new Runnable() {
 	    public void run() {
+
 		// *******************
 		setUpComboColumn(table, table.getColumnModel().getColumn(COLIDX_Chr),
 			IGV.getInstance().getChromNamesArray(), null);
@@ -285,7 +293,10 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 		    model.removeRow(i);
 		}
 		if (GIE.getInstance().getActiveDataset() != null) {
+		    GIEDatasetVersionLayer activeLayer = GIE.getInstance().getActiveDataset().getCurrentVersion()
+			    .getActiveLayer();
 
+		  
 		    // // remove filter
 		    // javax.swing.RowFilter<? super TableModel, ? super Integer> filter = tableSorter.getRowFilter();
 		    // tableSorter.setRowFilter(null);
@@ -307,27 +318,24 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 				(r.getDescription() == null ? "-" : r.getDescription()),
 				(r.getScore() == null ? 0d : r.getScore()),
 				(r.getStrand() == null ? "0" : r.getStrand()),
-				(r.getColor() == null ? "-" : r.getColor()) })
+				(r.getColor() == null ? "-" : r.getColor()),
+				(activeLayer.getLinkedROIs().contains(r) ? "1"
+					: "0") })
 			    d.add(o);
 
-			for (String s : GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer()
-				.getAnnotations()) {
+			for (String s : activeLayer.getAnnotations()) {
 			    String v = r.getAnnotation(s);
 			    d.add(v == null ? "" : v);
 			}
 			model.addRow(d.toArray());
 		    }
 		    // tableSorter.setRowFilter(filter);
-		}
 
-		// update layer combobox
-		if (GIE.getInstance().getActiveDataset() != null) {
 		    testActionListenerActive = false;
 		    layerCombo.removeAllItems();
 		    Iterator<String> lns = GIE.getInstance().getActiveDataset().getCurrentVersion().getLayers().keySet()
 			    .iterator();
-		    String al = GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer()
-			    .getLayerName();
+		    String al = activeLayer.getLayerName();
 		    String aln = null;
 		    int i = 1;
 		    while (lns.hasNext()) {
@@ -557,7 +565,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	for (RegionOfInterest r : regions) {
 	    if (visible.overlaps(r.getRange())) {
 		int vidx = table.convertRowIndexToView(idx);
-		if ( vidx < 0) { // don#t select as not currently shown (filtered)
+		if (vidx < 0) { // don#t select as not currently shown (filtered)
 		    idx++;
 		    continue;
 		}
@@ -669,6 +677,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
     final static int COLIDX_Score = 7;
     final static int COLIDX_Strand = 8;
     final static int COLIDX_COLOR = 9;
+    final static int COLIDX_LINKED = 10;
 
     /**
      * @return x, y, with, height of current window
@@ -855,6 +864,24 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	});
 	statsM.add(calcStatsM);
 	menuBar.add(statsM);
+	
+	
+	// ------------------------------- KARY ------------------------------------------------
+	JMenu karyM = new JMenu("Visualize");
+	karyM.setOpaque(false);
+	karyM.setBackground(MENU_COL);
+
+	JMenuItem calcKaryM = new JMenuItem("Whole Genome View");
+	calcKaryM.setToolTipText("Show whole genome view");
+	calcKaryM.addActionListener(new ActionListener() {
+	    public void actionPerformed(ActionEvent e) {
+		new GIEGenomeViewDialog(IGV.getMainFrame());
+	    }
+	});
+	karyM.add(calcKaryM);
+	menuBar.add(karyM);
+	
+	
 
 	/**
 	 * header label
@@ -930,10 +957,11 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	}
 
 	columnNames = new ArrayList<>();
-	for (String s : new String[] { "Chr", "Start", "End", "Width", "", "", "Name", "Score", "Strand", "Color" })
+	for (String s : new String[] { "Chr", "Start", "End", "Width", "", "", "Name", "Score", "Strand", "Color",
+		"Linked" })
 	    columnNames.add(s);
 	List<Integer> columnWidths = new ArrayList<>();
-	for (int w : new int[] { 50, 70, 70, 50, 50, 25, 100, 50, 30, 50 })
+	for (int w : new int[] { 50, 70, 70, 50, 50, 25, 100, 50, 30, 50, 10 })
 	    columnWidths.add(w);
 	if (GIE.getInstance().getActiveDataset() != null) {
 	    for (String s : GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer()
@@ -959,7 +987,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	    }
 
 	    public boolean isCellEditable(int row, int col) {
-		return col != COLIDX_COLOR;
+		return col != COLIDX_COLOR && col != COLIDX_LINKED;
 	    }
 
 	    @Override
@@ -975,6 +1003,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 		switch (columnIndex) {
 		case COLIDX_Start:
 		case COLIDX_End:
+		case COLIDX_LINKED:
 		    return Integer.class;
 		case COLIDX_Score:
 		    return Double.class;
@@ -1060,10 +1089,31 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	}
 	;
 
+	// render the table
+	final class MyTableCellRenderer extends DefaultTableCellRenderer {
+
+	    /**
+	     * 
+	     */
+	    private static final long serialVersionUID = 1L;
+
+	    @Override
+	    public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+		    boolean hasFocus, int row, int column) {
+		Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+		boolean isLinked = table.getModel().getValueAt(table.convertRowIndexToModel(row), COLIDX_LINKED)
+			.toString().equals("1");
+		if (isLinked)
+		    c.setForeground( Color.BLUE);
+		else
+		    c.setForeground(Color.BLACK);
+		return c;
+	    }
+	}
+
 	/**
 	 * SET UP TABLE
 	 */
-	System.out.println("SET UP TABLE WITH " + columnNames.size());
 	MyTableModel model = new MyTableModel(columnNames.toArray(), 0);
 	this.table = new JTable(model);
 	this.tableSorter = new TableRowSorter<TableModel>(model);
@@ -1074,6 +1124,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	this.tableSorter.setComparator(COLIDX_End, new IntComparator());
 	this.tableSorter.setComparator(COLIDX_Score, new DoubleComparator());
 	this.tableSorter.setComparator(COLIDX_Width, new WidthComparator());
+	this.table.setDefaultRenderer(Object.class, new MyTableCellRenderer());
 
 	table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 	table.setRowSelectionAllowed(true);
@@ -1324,6 +1375,8 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 		if (rows.length >= 0) {
 
 		    RegionOfInterest selectedRegion = getSelectedMergedRegion(rows);
+		    GIEDatasetVersionLayer activeLayer = GIE.getInstance().getActiveDataset().getCurrentVersion()
+			    .getActiveLayer();
 
 		    JPopupMenu popupMenu = new IGVPopupMenu();
 
@@ -1545,8 +1598,6 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 			    if (selectedRows.length > 0) {
 				List<RegionOfInterest> selectedRegions = getSelectedRegions();
 
-				GIEDatasetVersionLayer activeLayer = GIE.getInstance().getActiveDataset()
-					.getCurrentVersion().getActiveLayer();
 				List<String> ll = new ArrayList<String>();
 				for (String l : GIE.getInstance().getActiveDataset().getCurrentVersion().getLayers()
 					.keySet())
@@ -1581,8 +1632,6 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 			    if (selectedRows.length > 0) {
 				List<RegionOfInterest> selectedRegions = getSelectedRegions();
 
-				GIEDatasetVersionLayer activeLayer = GIE.getInstance().getActiveDataset()
-					.getCurrentVersion().getActiveLayer();
 				List<String> ll = new ArrayList<String>();
 				for (String l : GIE.getInstance().getActiveDataset().getCurrentVersion().getLayers()
 					.keySet())
@@ -1611,8 +1660,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 
 		    popupMenu.addSeparator();
 
-		    for (String s : GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer()
-			    .getAnnotations()) {
+		    for (String s : activeLayer.getAnnotations()) {
 			JMenuItem setAnnoItem = new JMenuItem("Set " + s + " of Selected");
 			setAnnoItem.addActionListener(new ActionListener() {
 			    public void actionPerformed(ActionEvent e) {
@@ -1625,8 +1673,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 				    if (value != null) {
 					if (value.startsWith("ATTR ")) {
 					    String attrname = value.substring("ATTR ".length());
-					    if (!GIE.getInstance().getActiveDataset().getCurrentVersion()
-						    .getActiveLayer().hasAnnotation(attrname)) {
+					    if (!activeLayer.hasAnnotation(attrname)) {
 						log.error("Cannot find custom attribute " + attrname);
 					    } else {
 						for (RegionOfInterest r : selectedRegions) {
@@ -1656,6 +1703,50 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 			    }
 			});
 			popupMenu.add(setAnnoItem);
+		    }
+
+		    int[] selectedRows = table.getSelectedRows();
+
+		    if (selectedRows.length == 1) {
+			int idx = table.convertRowIndexToModel(table.getSelectedRow());
+			RegionOfInterest roi = getSelectedRegion(idx);
+			JMenuItem createLinkItem = null;
+			if (linkSourceROI == null) {
+			    createLinkItem = new JMenuItem("Set Link Source...");
+			    createLinkItem.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+				    linkSourceROI = roi;
+				}
+			    });
+			} else {
+			    createLinkItem = new JMenuItem("Link with " + linkSourceROI + "...");
+			    createLinkItem.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+				    ROILink rl = new ROILink(linkSourceROI, roi, TYPE.FUSION);
+				    System.err.println("Created  " + rl);
+				    activeLayer.addLink(rl);
+				    refresh();
+				    linkSourceROI = null;
+				}
+			    });
+
+			}
+			popupMenu.addSeparator();
+			popupMenu.add(createLinkItem);
+
+			if (GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer().getLinkedROIs()
+				.contains(roi)) {
+			    // TODO: allow deletion of single links.
+			    JMenuItem deleteLinkItem = new JMenuItem("Delete links...");
+			    deleteLinkItem.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+				    activeLayer.deleteLinks( roi );
+				    refresh();
+				    linkSourceROI = null;
+				}
+			    });
+			    popupMenu.add(deleteLinkItem);
+			}
 		    }
 
 		    popupMenu.show(table, p.x, p.y);
