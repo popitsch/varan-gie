@@ -100,7 +100,7 @@ public class RegionOfInterest implements Comparable<RegionOfInterest> {
 
 	StringBuffer sb = new StringBuffer();
 	sb.append("<html><body>");
-	sb.append("<b>" + (description == null ? chr + ":" + getDisplayStart() + "-" + getDisplayEnd() : description)
+	sb.append("<b>" + (description == null || description.equals("") ? chr + ":" + getDisplayStart() + "-" + getDisplayEnd() : description)
 		+ "</b><br/>");
 	if (score!=0d)
 	    sb.append("score=" + score + "<br/>");

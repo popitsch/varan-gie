@@ -167,7 +167,7 @@ public class RegionOfInterestPanel extends JPanel {
 
 	JPopupMenu popupMenu = new RegionMenu(roi, frame);
 
-	JMenuItem item = new JMenuItem("Select in VARAN");
+	JMenuItem item = new JMenuItem("Select in data table");
 	item.addActionListener(new ActionListener() {
 	    public void actionPerformed(ActionEvent e) {
 		if (GIEDataDialog.getInstance().isVisible()) {
@@ -177,6 +177,17 @@ public class RegionOfInterestPanel extends JPanel {
 	});
 	popupMenu.add(item);
 	
+	item = new JMenuItem("Select visible in data table");
+	item.addActionListener(new ActionListener() {
+	    public void actionPerformed(ActionEvent e) {
+		if (GIEDataDialog.getInstance().isVisible()) {
+		    GIEDataDialog.getInstance().selectVisibleRegions();
+		}
+	    }
+	});
+	popupMenu.add(item);
+	
+	popupMenu.addSeparator();
 	
 	item = new JMenuItem("Show start");
 	item.addActionListener(new ActionListener() {

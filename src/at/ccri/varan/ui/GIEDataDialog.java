@@ -99,6 +99,7 @@ import org.broad.igv.Globals;
 import org.broad.igv.event.IGVEventBus;
 import org.broad.igv.event.IGVEventObserver;
 import org.broad.igv.event.ViewChange;
+import org.broad.igv.feature.Range;
 import org.broad.igv.feature.RegionOfInterest;
 import org.broad.igv.feature.genome.GenomeManager;
 import org.broad.igv.lists.GeneList;
@@ -538,6 +539,32 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	table.clearSelection();
 	int vidx = table.convertRowIndexToView(idx);
 	table.setRowSelectionInterval(vidx, vidx);
+	table.repaint();
+    }
+
+    /**
+     * Select a roi in the table
+     * 
+     * @param roi
+     */
+    public void selectVisibleRegions() {
+	List<RegionOfInterest> regions = (List<RegionOfInterest>) IGV.getInstance().getSession()
+		.getAllRegionsOfInterest();
+	// get visible regions
+	table.clearSelection();
+	Range visible = IGV.getInstance().getSession().getReferenceFrame().getCurrentRange();
+	int idx = 0;
+	for (RegionOfInterest r : regions) {
+	    if (visible.overlaps(r.getRange())) {
+		int vidx = table.convertRowIndexToView(idx);
+		if ( vidx < 0) { // don#t select as not currently shown (filtered)
+		    idx++;
+		    continue;
+		}
+		table.addRowSelectionInterval(vidx, vidx);
+	    }
+	    idx++;
+	}
 	table.repaint();
     }
 
