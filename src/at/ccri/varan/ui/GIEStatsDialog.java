@@ -50,6 +50,7 @@ import javax.swing.JTextArea;
 import javax.swing.SpringLayout;
 import javax.swing.WindowConstants;
 
+import org.broad.igv.Globals;
 import org.broad.igv.feature.RegionOfInterest;
 import org.broad.igv.feature.genome.Genome;
 import org.broad.igv.feature.genome.GenomeManager;
@@ -170,7 +171,7 @@ public class GIEStatsDialog extends JDialog {
 		for (String chr : g.getAllChromosomeNames()) {
 		    boolean canonical = CanonicalChromsomeComparator
 			    .isCanonical(CanonicalChromsomeComparator.getCanonicalMappingHuman(chr));
-		    if (g.getId().equals(PreferencesManager.getPreferences().getDefaultGenome()) && !canonical)
+		    if (g.getId().equals(Globals.DEFAULT_GENOME) && !canonical)
 			continue;
 		    Integer c = counts.get(chr);
 		    Integer b = bps.get(chr);

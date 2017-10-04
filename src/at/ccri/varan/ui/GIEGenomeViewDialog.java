@@ -37,20 +37,27 @@ import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JDialog;
+import javax.swing.JInternalFrame;
+import javax.swing.JLabel;
+import javax.swing.JLayeredPane;
 import javax.swing.JPanel;
+import javax.swing.JRootPane;
 import javax.swing.JScrollPane;
-import javax.swing.SpringLayout;
+import javax.swing.UIManager;
 import javax.swing.WindowConstants;
+import javax.swing.plaf.ColorUIResource;
 
+import org.broad.igv.Globals;
 import org.broad.igv.feature.Chromosome;
 import org.broad.igv.feature.Cytoband;
 import org.broad.igv.feature.RegionOfInterest;
@@ -59,6 +66,8 @@ import org.broad.igv.feature.genome.GenomeManager;
 import org.broad.igv.ui.IGV;
 
 import at.ccri.varan.GIE;
+import at.ccri.varan.GIEDatasetVersion;
+import at.ccri.varan.GIEDatasetVersionLayer;
 import at.ccri.varan.util.CanonicalChromsomeComparator;
 
 /**
@@ -71,10 +80,13 @@ public class GIEGenomeViewDialog extends JDialog {
 
     private static final long serialVersionUID = 1L;
 
-    final int bandHeight = 8;
-    static final public int CYTOBAND_Y_OFFSET = 5;
+    private static final int CYTOBAND_HEIGHT = 6;
+    private static final  int CYTOBAND_Y_OFFSET = 3;
+    private static final  int INT_HEIGHT = 6;
+    private static final int INTER_CHR_SPACING = 10;
+
     private static Map<Integer, Color> stainColors = new HashMap<Integer, Color>();
-    Dimension dim = new Dimension(1200, 960);
+    Dimension dim = new Dimension(1240, 960);
 
     // private static Logger log = Logger.getLogger(GIEGenomeViewDialog.class);
 
@@ -102,18 +114,11 @@ public class GIEGenomeViewDialog extends JDialog {
 	    GIE.getInstance().getWindowCoordinates().put("GIEGenomeViewDialog", getCoords());
     }
 
-    private String fmt(Integer c) {
-	if (c == null)
-	    return "-";
-	return String.format(Locale.US, "%s", c);
-    }
-
     /**
      * Initialize the dialog.
      */
     private void init() {
 	setTitle("VARAN-GIE :: Whole Genome View");
-	setMinimumSize(dim);
 	setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 	// +++++++++++++++++++++++++++++++++++++++++++++++
 	// set location on screen
@@ -127,20 +132,27 @@ public class GIEGenomeViewDialog extends JDialog {
 	});
 	Integer[] coords = GIE.getInstance().getWindowCoordinates().get("GIEGenomeViewDialog");
 	if (coords == null) {
-	    setPreferredSize(new Dimension(500, 520));
+	    setPreferredSize(dim);
+	    setMinimumSize(dim);
 	    setLocationRelativeTo(IGV.getMainFrame());
 	} else {
 	    // check compatibility with actual screen size
 	    coords[0] = Math.min(coords[0], GIE.SCREEN_WIDTH - coords[2]);
 	    coords[1] = Math.min(coords[1], GIE.SCREEN_HEIGHT - coords[3]);
 	    setLocation(coords[0], coords[1]);
+	    setMinimumSize(dim);
 	    setPreferredSize(new Dimension(coords[2], coords[3]));
 	}
 	// +++++++++++++++++++++++++++++++++++++++++++++++
 
-	JPanel formPanel = new JPanel(new SpringLayout());
+	// get active dataset version
+	if (GIE.getInstance().getActiveDataset() == null
+		|| GIE.getInstance().getActiveDataset().getCurrentVersion() == null)
+	    return;
+	GIEDatasetVersion ds = GIE.getInstance().getActiveDataset().getCurrentVersion();
 
 	final class MyPanel extends JPanel {
+	    private static final long serialVersionUID = 1L;
 
 	    MyPanel() {
 		setMinimumSize(dim);
@@ -166,60 +178,63 @@ public class GIEGenomeViewDialog extends JDialog {
 		}
 
 		int off = 10;
+		int leftoff = 35;
 		for (String chrName : genome.getAllChromosomeNames()) {
+
 		    Chromosome chromosome = genome.getChromosome(chrName);
 		    if (chromosome == null) {
 			continue;
 		    }
-		    if (!CanonicalChromsomeComparator
-			    .isCanonical(CanonicalChromsomeComparator.getCanonicalMappingHuman(chrName)))
+
+		    // skip non-canonical chroms for human genome hg19.
+		    boolean canonical = CanonicalChromsomeComparator
+			    .isCanonical(CanonicalChromsomeComparator.getCanonicalMappingHuman(chrName));
+
+		    if (genome.getId().equals(Globals.DEFAULT_GENOME) && !canonical)
 			continue;
 
 		    List<Cytoband> currentCytobands = chromosome.getCytobands();
-		    if (currentCytobands == null) {
-			return;
-		    }
-
 		    // calc chrom width
 		    int pxWidth = (int) Math.round(
 			    (double) getOwner().getWidth() * ((double) chromosome.getLength() / (double) maxlen));
 
 		    // chr name
 		    g.setColor(Color.black);
-		    g.drawString(chrName, 0, off);
+		    g.drawString(chrName, 1, off+1);
 		    // draw chrom
-		    Rectangle cytoRect = new Rectangle(10, off, pxWidth, bandHeight);
+		    Rectangle cytoRect = new Rectangle(leftoff, off, pxWidth, CYTOBAND_HEIGHT);
 		    drawBands(currentCytobands, g, cytoRect, chromosome.getLength());
 
-		    off += 10;
+		    off += CYTOBAND_HEIGHT+2;
 
 		    // draw intervals
-		    List<RegionOfInterest> regions = (List<RegionOfInterest>) IGV.getInstance().getSession()
-			    .getRegionsOfInterest(chrName);
-		    Rectangle dataRect = new Rectangle(10, off, pxWidth, bandHeight);
-		    drawIntervals(regions, g, dataRect, chromosome.getLength());
-
-		    off += 25;
+		    Iterator<String> lns = ds.getLayers().keySet().iterator();
+		    while (lns.hasNext()) {
+			String lname = lns.next();
+			GIEDatasetVersionLayer layer = ds.getLayers().get(lname);
+			Rectangle dataRect = new Rectangle(leftoff, off, pxWidth, INT_HEIGHT);
+			drawIntervals(chrName, layer.getRegions(), g, dataRect, chromosome.getLength());
+			off += INT_HEIGHT + 1;
+		    }
+		    off += INTER_CHR_SPACING ;
 		}
 
-		g.draw3DRect(700, 550, 200, 80, true);
-		g.setFont(new Font("Courier New", Font.ITALIC, 12));
-		g.drawString(GIE.getInstance().getActiveDataset().getName()+", "+GIE.getInstance().getActiveDataset().getCurrentVersion().getVersionName(), 710, 570);
-		g.drawString("Layer:" + GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer().getLayerName(), 710, 590);
-		g.drawString("Last Modified:" + GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer().getLastModified(), 710, 610);
-		
 	    }
 	}
 
+
 	JPanel canvas = new MyPanel();
-	JScrollPane sp = new JScrollPane(canvas);
-	formPanel.add(sp);
-
+	// TODO calculate canvas height from #chro+#layers
+	canvas.setPreferredSize(new Dimension((int) dim.getWidth(), 2000));
+	canvas.setBackground(Color.WHITE);
+	canvas.setOpaque(true);
+	JScrollPane scrollFrame = new JScrollPane(canvas);
+	canvas.setAutoscrolls(true);
+	scrollFrame.setHorizontalScrollBar(null);
+	add(scrollFrame, BorderLayout.CENTER);
 	JPanel buttonPanel = new JPanel();
-	buttonPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 6, 6));
+	buttonPanel.setBorder(BorderFactory.createEmptyBorder(2, 2, 6, 6));
 	buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.LINE_AXIS));
-
-	// buttons
 	JButton buttonOk = new JButton("OK");
 	buttonOk.addActionListener(new ActionListener() {
 	    @Override
@@ -228,14 +243,55 @@ public class GIEGenomeViewDialog extends JDialog {
 		dispose();
 	    }
 	});
-
 	buttonPanel.add(Box.createHorizontalGlue());
 	buttonPanel.add(buttonOk);
-
-	add(formPanel, BorderLayout.CENTER);
 	add(buttonPanel, BorderLayout.SOUTH);
 
+	// Legend in dragabble, floating frame
+	UIManager.put("InternalFrame.activeTitleBackground", new ColorUIResource(Color.black));
+	UIManager.put("InternalFrame.inactiveTitleBackground", new ColorUIResource(Color.black));
+	UIManager.put("InternalFrame.activeTitleForeground", new ColorUIResource(Color.WHITE));
+	UIManager.put("InternalFrame.inactiveTitleForeground", new ColorUIResource(Color.WHITE));
+	UIManager.put("InternalFrame.titleFont", new Font("Dialog", Font.PLAIN, 16));
+	JLayeredPane layeredPane = getLayeredPane();
+	JInternalFrame legendFrame = new JInternalFrame("Legend", false, false, false, false);
+	legendFrame.putClientProperty("JInternalFrame.isPalette", Boolean.TRUE);
+	legendFrame.getRootPane().setWindowDecorationStyle(JRootPane.NONE);
+	legendFrame.setJMenuBar(null);
+	legendFrame.setBounds(800, 800, 200, 100+ds.getLayers().size()*15);
+	legendFrame.setClosable(false);
+//	legendFrame.setBorder(BorderFactory.createMatteBorder(0, 1, 3, 3, Color.DARK_GRAY));
+	legendFrame.setTitle("Legend");
+	try {
+	    legendFrame.setSelected(true);
+	    legendFrame.setFrameIcon(null);
+	} catch (java.beans.PropertyVetoException e2) {}
+
+	// remove title bar
+	// ((javax.swing.plaf.basic.BasicInternalFrameUI)legendFrame.getUI()).setNorthPane(null);
+	JPanel legendPanel = (JPanel) legendFrame.getContentPane();
+	legendPanel.setLayout(new BorderLayout());
+	StringBuilder legendText = new StringBuilder();
+	legendText.append("<html><body><p>");
+	legendText.append("<b>" + ds.getDataset().getName() + ", " + ds.getVersionName() + "</b><br/>");
+	legendText.append("Last Modified:" + ds.getActiveLayer().getLastModified() + "<br/>");
+	Iterator<String> lns = ds.getLayers().keySet().iterator();
+	int i = 0;
+	while (lns.hasNext()) {
+	    i++;
+	    String lname = lns.next();
+	    legendText.append("Layer #" + i + ":" + lname + "<br/>");
+	}
+	legendText.append("</p></body></html>");
+	legendPanel.add(new JLabel(legendText.toString()), BorderLayout.CENTER);
+	legendPanel.setBackground(Color.white);
+	layeredPane.add(legendFrame, JLayeredPane.DRAG_LAYER);
+	legendFrame.setVisible(true);
+
+
+
 	pack();
+	setModal(false);
 	setVisible(true);
     }
 
@@ -255,44 +311,49 @@ public class GIEGenomeViewDialog extends JDialog {
 	double scale = graphicRect.getWidth() / chromoLength;
 
 	int lastPX = -1;
-	for (Cytoband cytoband : data) {
-	    int start = (int) (graphicRect.getX() + scale * cytoband.getStart());
-	    int end = (int) (graphicRect.getX() + scale * cytoband.getEnd());
-	    if (end > lastPX) {
+	if (data == null) {
+	    g2D.setColor(Color.BLACK);
+	    g2D.drawRect((int) graphicRect.getX(), (int) graphicRect.getY(), (int) graphicRect.getWidth(),
+		    (int) graphicRect.getHeight());
+	} else
+	    for (Cytoband cytoband : data) {
+		int start = (int) (graphicRect.getX() + scale * cytoband.getStart());
+		int end = (int) (graphicRect.getX() + scale * cytoband.getEnd());
+		if (end > lastPX) {
 
-		int y = (int) graphicRect.getY() + CYTOBAND_Y_OFFSET;
-		int height = (int) graphicRect.getHeight();
+		    int y = (int) graphicRect.getY() + CYTOBAND_Y_OFFSET;
+		    int height = (int) graphicRect.getHeight();
 
-		if (cytoband.getType() == 'c') { // centermere: "acen"
+		    if (cytoband.getType() == 'c') { // centermere: "acen"
 
-		    int center = (y + height / 2);
-		    if (cytoband.getName().startsWith("p")) {
-			xC[0] = start;
-			yC[0] = (int) graphicRect.getMaxY() + CYTOBAND_Y_OFFSET;
-			xC[1] = start;
-			yC[1] = y;
-			xC[2] = end;
-			yC[2] = center;
+			int center = (y + height / 2);
+			if (cytoband.getName().startsWith("p")) {
+			    xC[0] = start;
+			    yC[0] = (int) graphicRect.getMaxY() + CYTOBAND_Y_OFFSET;
+			    xC[1] = start;
+			    yC[1] = y;
+			    xC[2] = end;
+			    yC[2] = center;
+			} else {
+			    xC[0] = end;
+			    yC[0] = (int) graphicRect.getMaxY() + CYTOBAND_Y_OFFSET;
+			    xC[1] = end;
+			    yC[1] = y;
+			    xC[2] = start;
+			    yC[2] = center;
+			}
+			g2D.setColor(Color.RED.darker());
+			g2D.fillPolygon(xC, yC, 3);
 		    } else {
-			xC[0] = end;
-			yC[0] = (int) graphicRect.getMaxY() + CYTOBAND_Y_OFFSET;
-			xC[1] = end;
-			yC[1] = y;
-			xC[2] = start;
-			yC[2] = center;
-		    }
-		    g2D.setColor(Color.RED.darker());
-		    g2D.fillPolygon(xC, yC, 3);
-		} else {
 
-		    g2D.setColor(getCytobandColor(cytoband));
-		    g2D.fillRect(start, y, (end - start), height);
-		    g2D.setColor(Color.BLACK);
-		    g2D.drawRect(start, y, (end - start), height);
+			g2D.setColor(getCytobandColor(cytoband));
+			g2D.fillRect(start, y, (end - start), height);
+			g2D.setColor(Color.BLACK);
+			g2D.drawRect(start, y, (end - start), height);
+		    }
 		}
+		lastPX = end;
 	    }
-	    lastPX = end;
-	}
     }
 
     private static Color getCytobandColor(Cytoband data) {
@@ -324,12 +385,15 @@ public class GIEGenomeViewDialog extends JDialog {
      * @param graphicRect
      * @param chromoLength
      */
-    public void drawIntervals(List<RegionOfInterest> data, Graphics g2D, Rectangle graphicRect, int chromoLength) {
+    public void drawIntervals(String chr, Set<RegionOfInterest> data, Graphics g2D, Rectangle graphicRect,
+	    int chromoLength) {
 	if (data == null)
 	    return;
 	double scale = graphicRect.getWidth() / chromoLength;
 	int lastPX = -1;
 	for (RegionOfInterest roi : data) {
+	    if (!roi.getChr().equals(chr))
+		continue;
 	    int start = (int) (graphicRect.getX() + scale * roi.getStart());
 	    int end = (int) (graphicRect.getX() + scale * roi.getEnd());
 	    int i = 0;
@@ -338,12 +402,15 @@ public class GIEGenomeViewDialog extends JDialog {
 		int y = (int) graphicRect.getY() + CYTOBAND_Y_OFFSET;
 		int height = (int) graphicRect.getHeight();
 		Color col = roi.getAWTColor();
-		if (col == null)
-		    col = Color.DARK_GRAY;
+		if ( col == null || col.equals(Color.WHITE)) // cannot draw white on white
+		    col=Color.GRAY;
 		if (i % 2 == 0)
 		    col = col.darker();
 		g2D.setColor(col);
-		g2D.fillRect(start, y, (end - start), height);
+		if ((end - start) == 0)
+		    g2D.fillRect(start, y, 1, height / 2);
+		else
+		    g2D.fillRect(start, y, (end - start), height);
 		// g2D.setColor(Color.BLACK);
 		// g2D.drawRect(start, y, (end - start), height);
 	    }
