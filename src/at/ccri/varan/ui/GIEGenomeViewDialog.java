@@ -86,7 +86,7 @@ public class GIEGenomeViewDialog extends JDialog {
     private static final int INTER_CHR_SPACING = 10;
 
     private static Map<Integer, Color> stainColors = new HashMap<Integer, Color>();
-    Dimension dim = new Dimension(1240, 960);
+    Dimension dim = new Dimension(1400, 960);
 
     // private static Logger log = Logger.getLogger(GIEGenomeViewDialog.class);
 
@@ -196,7 +196,7 @@ public class GIEGenomeViewDialog extends JDialog {
 		    List<Cytoband> currentCytobands = chromosome.getCytobands();
 		    // calc chrom width
 		    int pxWidth = (int) Math.round(
-			    (double) getOwner().getWidth() * ((double) chromosome.getLength() / (double) maxlen));
+			    ((double) dim.getWidth() - 80) * ((double) chromosome.getLength() / (double) maxlen));
 
 		    // chr name
 		    g.setColor(Color.black);

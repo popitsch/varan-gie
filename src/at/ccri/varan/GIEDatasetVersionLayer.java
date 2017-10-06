@@ -154,8 +154,9 @@ public class GIEDatasetVersionLayer {
 		    roi.setScore(t[4]);
 		    roi.setStrand(t[5]);
 		    roi.setColor(t[8]);
-		    for (int i = 9; i < t.length; i++)
-			roi.addAnnotation(annotations[i - 9], URLDecoder.decode(t[i], "UTF-8"));
+		    // skip blockCount blockSizes blockStarts   
+		    for (int i = 12; i < t.length; i++)
+			roi.addAnnotation(annotations[i - 12], URLDecoder.decode(t[i], "UTF-8"));
 		    regions.add(roi);
 		}
 		reader.close();

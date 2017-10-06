@@ -19,16 +19,20 @@ import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.lang.reflect.Type;
 import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -38,6 +42,7 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.filefilter.FileFileFilter;
 import org.apache.log4j.Logger;
 import org.broad.igv.DirectoryManager;
 import org.broad.igv.feature.RegionOfInterest;
@@ -95,7 +100,7 @@ public class GIE {
     /**
      * GIE Version
      */
-    public static final String VERSION = "0.2.5";
+    public static final String VERSION = "0.2.6";
 
     public static final String AUTHORS = "niko.popitsch@ccri.at";
 
@@ -153,17 +158,17 @@ public class GIE {
      * Filter for the data table
      */
     GIERowFilter rowFilter = new GIERowFilter();
-    
+
     /**
      * Whether or not the useFilter checkbox is selected.
      */
     boolean useFilter;
-    
+
     /**
      * The last selected dataset category
      */
     String selectedDatasetCategory;
-    
+
     /**
      * GIE annotation tracks
      */
@@ -179,7 +184,25 @@ public class GIE {
      */
     Map<String, File> lastAccessedDirectories = new HashMap<String, File>();
 
-    private boolean showRefLines;;
+    /**
+     * Show the vertical reference lines?
+     */
+    private boolean showRefLines;
+
+    /**
+     * Full backup snapshots
+     */
+    private SortedSet<Date> backupSnapshots = new TreeSet<>();
+
+    /**
+     * Keep only the last 10 snapshots.
+     */
+    private final static int MAX_BACKUPS = 10;
+
+    /**
+     * Directory names for automatical backups.
+     */
+    private transient SimpleDateFormat backupSF = new SimpleDateFormat("'GIEAutoBackup'_yyyy.MM.dd");
 
     /**
      * Workaround for GSON bug with serialization of windows UNC paths.
@@ -220,6 +243,10 @@ public class GIE {
 	    SCREEN_WIDTH += mode.getWidth();
 	    SCREEN_HEIGHT = mode.getHeight();
 	}
+    }
+
+    public File getHomeDir() {
+	return GIE_DIRECTORY;
     }
 
     /**
@@ -271,8 +298,153 @@ public class GIE {
 		    log.error("Error initializing GIE: " + e.getMessage());
 		}
 	    }
+
+	    // create backup?
+	    Date lastBackup = GIE.instance.getBackupSnapshots().size() > 0 ? GIE.instance.getBackupSnapshots().last()
+		    : null;
+	    Date today = new Date();
+	    if (lastBackup == null || TimeUnit.MILLISECONDS.toHours(today.getTime() - lastBackup.getTime()) >= 12) {
+		log.info("++++++++++++++++++++++++ Auutomatic data backup +++++++++++++++++++++++++");
+		GIE.instance.createAutoBackup();
+	    } else
+		log.info("Hours since last autobackup: "
+			+ TimeUnit.MILLISECONDS.toHours(today.getTime() - lastBackup.getTime()));
+
+	    // delete old backups?
+	    GIE.instance.removeOldBackups();
 	}
 	return GIE.instance;
+    }
+
+    /**
+     * Create a full backup by copying the GIE directory
+     * 
+     * @throws IOException
+     */
+    public boolean createAutoBackup() {
+	try {
+	    Date today = new Date();
+	    File backupDir = new File(GIE_DIRECTORY, backupSF.format(today));
+	    if (backupDir.exists())
+		throw new IOException("Backup directory already exists: " + backupDir);
+	    if (!backupDir.mkdir())
+		throw new IOException("Cannot create backup dir: " + backupDir);
+	    // copy all files from GIE home dir
+	    FileUtils.copyDirectory(GIE_DIRECTORY, backupDir, FileFileFilter.FILE, false);
+	    getBackupSnapshots().add(today);
+	    return true;
+	} catch (IOException e) {
+	    log.error("Could not create backup");
+	    e.printStackTrace();
+	    return false;
+	}
+    }
+
+    /**
+     * Create a full backup by copying the GIE directory
+     * 
+     * @throws IOException
+     */
+    public boolean createManualBackup(File backupDir) {
+	try {
+	    if (backupDir.exists())
+		throw new IOException("Backup directory already exists: " + backupDir);
+	    if (!backupDir.mkdir())
+		throw new IOException("Cannot create backup dir: " + backupDir);
+	    // copy all files from GIE home dir
+	    FileUtils.copyDirectory(GIE_DIRECTORY, backupDir, FileFileFilter.FILE, false);
+	    JOptionPane.showMessageDialog(null, "Succesfully backed-up your data to " + backupDir, "Info",
+		    JOptionPane.INFORMATION_MESSAGE);
+	    return true;
+	} catch (IOException e) {
+	    log.error("Could not create backup");
+	    e.printStackTrace();
+	    return false;
+	}
+    }
+
+    /**
+     * Keep only the last n backups.
+     * 
+     * @throws IOException
+     */
+    private void removeOldBackups() {
+	int n = getBackupSnapshots().size();
+	Iterator<Date> it = getBackupSnapshots().iterator();
+	while (it.hasNext() && n > MAX_BACKUPS) {
+	    Date d = it.next();
+	    File backupDir = new File(GIE_DIRECTORY, backupSF.format(d));
+	    log.info("Removing autobackup from " + backupDir);
+	    if (!backupDir.exists())
+		log.warn("Could not find backup directory " + backupDir);
+	    if (!FileUtils.deleteQuietly(backupDir))
+		log.warn("Could not delete directory " + backupDir);
+	    it.remove();
+	    n--;
+	}
+    }
+
+    /**
+     * Restore from a full backup snapshot.
+     * 
+     * @param backupDir
+     * @throws IOException
+     */
+    public void restoreBackup(File backupDir) throws IOException {
+
+	if (!backupDir.exists()) {
+	    JOptionPane.showMessageDialog(null, "Backup directory not found.", "Error", JOptionPane.ERROR_MESSAGE);
+	    return;
+	}
+	if (!new File(backupDir, "gie.conf.json").exists()) {
+	    JOptionPane.showMessageDialog(null, "Backup directory does not contain VARAN-GIE configuration file.",
+		    "Error", JOptionPane.ERROR_MESSAGE);
+	    return;
+	}
+
+	// close dialogs
+	if (GIEDataDialog.getInstance() != null) {
+	    GIEDataDialog.destroyInstance();
+	}
+	if (GIEMainDialog.getInstance() != null) {
+	    GIEMainDialog.destroyInstance();
+	}
+
+	// remove current data files
+	boolean cleanSuccess = true;
+	for (File file : GIE_DIRECTORY.listFiles())
+	    if (!file.isDirectory() && !file.equals(lockFile)) {
+		if (!file.delete()) {
+		    log.error("Could not remove file " + file);
+		    cleanSuccess = false;
+		}
+	    }
+	if (!cleanSuccess) {
+	    log.error(
+		    "FATAL: could not clean GIE home directory. Please proceed as follows to restore your data: (1) close VARAN-GIE (2) remove all files (not directories) in "
+			    + GIE_DIRECTORY
+			    + " (3) copy all files from the respective backup snapshot directory to this directory (4) start VARAN-GIE.");
+	    System.exit(1);
+	}
+	// copy files from backup dir
+	FileUtils.copyDirectory(backupDir, GIE_DIRECTORY, FileFileFilter.FILE, false);
+
+	// drop current instance and re-instantiate
+	instance = null;
+	lockFile.delete();
+	getInstance();
+
+	// show dataset dialog
+	GIEMainDialog diag = GIEMainDialog.getInstance(IGV.getMainFrame());
+	if (diag.isVisible()) {
+	    diag.pack();
+	} else {
+	    diag.setVisible(true);
+	    diag.pack();
+	}
+
+	JOptionPane.showMessageDialog(null, "Succesfully restored VARAN-GIE data from " + backupDir, "Info",
+		JOptionPane.INFORMATION_MESSAGE);
     }
 
     /**
@@ -539,8 +711,8 @@ public class GIE {
 			    GIEDataDialog.destroyInstance();
 			}
 			GIEDataDialog.getInstance(IGV.getMainFrame());
-			
-			log.info("Loaded dataset" + ds.getName() );
+
+			log.info("Loaded dataset" + ds.getName());
 
 		    } finally {
 			if (progressDialog != null) {
@@ -550,7 +722,7 @@ public class GIE {
 			GIEDataDialog.blockReload = false;
 			if (GIEDataDialog.getInstance() != null)
 			    GIEDataDialog.getInstance().refresh();
-			
+
 			UndoHandler.getInstance().clear(); // no undo beyond load.
 		    }
 		}
@@ -679,10 +851,11 @@ public class GIE {
 	save();
 	return true;
     }
-    
+
     public GIEDatasetVersionLayer getDatasetMainLayer(String name) {
 	GIEDataset ds = datasets.get(name);
-	if ( ds == null) return null;
+	if (ds == null)
+	    return null;
 	return ds.getLatestCreatedVersion().getDefaultLayer();
     }
 
@@ -1257,6 +1430,11 @@ public class GIE {
 		    out.print(chr + "\t" + r.getStart() + "\t" + r.getEnd() + "\t" + r.getDescription() + "\t"
 			    + r.getScore() + "\t" + r.getStrand() + "\t" + r.getStart() + "\t" + r.getEnd() + "\t"
 			    + r.getColor());
+		    if ( annotations.length>0) {
+			// FIX: htsjdk BEDCodec assumes exon boundaries if >11 fields. 
+			// print blockCount blockSizes blockStarts   
+			out.print("\t1\t" + (r.getEnd()-r.getStart())+"\t0");
+		    }
 		    for (String cn : annotations)
 			try {
 			    String a = r.getAnnotation(cn);
@@ -1380,27 +1558,35 @@ public class GIE {
     }
 
     public GIERowFilter getRowFilter() {
-        return rowFilter;
+	return rowFilter;
     }
 
     public void setRowFilter(GIERowFilter rowFilter) {
-        this.rowFilter = rowFilter;
+	this.rowFilter = rowFilter;
     }
 
     public boolean isUseFilter() {
-        return useFilter;
+	return useFilter;
     }
 
     public void setUseFilter(boolean useFilter) {
-        this.useFilter = useFilter;
+	this.useFilter = useFilter;
     }
 
     public String getSelectedDatasetCategory() {
-        return selectedDatasetCategory;
+	return selectedDatasetCategory;
     }
 
     public void setSelectedDatasetCategory(String selectedDatasetCategory) {
-        this.selectedDatasetCategory = selectedDatasetCategory;
+	this.selectedDatasetCategory = selectedDatasetCategory;
+    }
+
+    public SortedSet<Date> getBackupSnapshots() {
+	return backupSnapshots;
+    }
+
+    public void setBackupSnapshots(SortedSet<Date> backupSnapshots) {
+	this.backupSnapshots = backupSnapshots;
     }
 
     public static void main(String[] args) {

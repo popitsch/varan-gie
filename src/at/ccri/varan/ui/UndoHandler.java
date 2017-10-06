@@ -1,8 +1,11 @@
 package at.ccri.varan.ui;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.SortedSet;
 import java.util.Stack;
+import java.util.TreeSet;
 
 import org.broad.igv.feature.RegionOfInterest;
 import org.broad.igv.ui.util.ReorderableJList;
@@ -134,4 +137,19 @@ public class UndoHandler {
 	return previous == null;
     }
 
+    
+    public static void main(String[] args) {
+	 SortedSet<Date> backupSnapshots = new TreeSet<>();
+	 backupSnapshots.add( new Date(2017, 8, 10));
+	 backupSnapshots.add( new Date(2017, 9, 12));
+	 backupSnapshots.add( new Date(2017, 9, 13));
+	 
+	 
+	 // get latest date
+	System.out.println( backupSnapshots.last() );
+	 
+	 System.out.println(backupSnapshots);
+	 
+    }
+    
 }

@@ -141,8 +141,9 @@ import org.broad.igv.util.encode.EncodeFileBrowser;
 import apple.dts.samplecode.osxadapter.OSXAdapter;
 import at.ccri.varan.ui.GIEAboutMenuAction;
 import at.ccri.varan.ui.GIEAnnoMenuAction;
-import at.ccri.varan.ui.GIEMainDialog;
+import at.ccri.varan.ui.GIECreateBackupMenuAction;
 import at.ccri.varan.ui.GIEMainMenuAction;
+import at.ccri.varan.ui.GIERestoreFromBackupMenuAction;
 
 /**
  * Main menu bar at top of window. File / genomes / view / etc.
@@ -925,7 +926,7 @@ public class IGVMenuBar extends JMenuBar implements IGVEventObserver {
 	// ...............................
 	// GIE main menu
 	// ...............................
-	menuAction = new GIEMainMenuAction("Show VARAN Windows ...", IGV.getInstance());
+	menuAction = new GIEMainMenuAction("Show VARAN windows ...", IGV.getInstance());
 	menuAction.setToolTipText("Show VARAN-GIE Windows");
 	menuItems.add(MenuAndToolbarUtils.createMenuItem(menuAction));
 
@@ -937,7 +938,20 @@ public class IGVMenuBar extends JMenuBar implements IGVEventObserver {
 	menuItems.add(MenuAndToolbarUtils.createMenuItem(menuAction));
 
 	menuItems.add(new JSeparator());
-	
+
+	// ...............................
+	// GIE backup track menu
+	// ...............................
+	menuAction = new GIECreateBackupMenuAction("Create backup...", IGV.getInstance());
+	menuAction.setToolTipText("Create a full VARAN-GIE data backup");
+	menuItems.add(MenuAndToolbarUtils.createMenuItem(menuAction));
+
+	menuAction = new GIERestoreFromBackupMenuAction("Restore from backup...", IGV.getInstance());
+	menuAction.setToolTipText("Restore VARAN-GIE from a backup folder (cannot be undone)");
+	menuItems.add(MenuAndToolbarUtils.createMenuItem(menuAction));
+
+	menuItems.add(new JSeparator());
+
 	// ...............................
 	// GIE about menu
 	// ...............................
@@ -947,9 +961,9 @@ public class IGVMenuBar extends JMenuBar implements IGVEventObserver {
 
 	MenuAction dataMenuAction = new MenuAction("VARAN", null, KeyEvent.VK_G);
 	viewMenu = MenuAndToolbarUtils.createMenu(menuItems, dataMenuAction);
-	
-//	viewMenu.setOpaque(false);
-//	viewMenu.setBackground(GIEMainDialog.COL_EVEN_ROWS);
+
+	// viewMenu.setOpaque(false);
+	// viewMenu.setBackground(GIEMainDialog.COL_EVEN_ROWS);
 	return viewMenu;
     }
 
