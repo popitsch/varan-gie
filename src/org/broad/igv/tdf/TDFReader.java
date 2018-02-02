@@ -232,11 +232,13 @@ public class TDFReader {
 
     public TDFDataset getDataset(String chr, int zoom, WindowFunction windowFunction) {
 
+	
+	
         // Version 1 only had mean
         String wf = getVersion() < 2 ? "" : "/" + windowFunction.toString();
         String zoomString = chr.equals(Globals.CHR_ALL) ? "0" : String.valueOf(zoom);
         String dsName = "/" + chr + "/z" + zoomString + wf;
-
+        
         TDFDataset ds = getDataset(dsName);
 
 
@@ -512,7 +514,7 @@ public class TDFReader {
 
             for (String chrName : genome.getLongChromosomeNames()) {
 
-                TDFDataset chrDataset = getDataset(chrName, 0, wf);
+                TDFDataset chrDataset = getDataset(chrName, 0, wf);       
                 if(chrDataset == null) continue;
 
                 List<TDFTile> chrTiles = chrDataset.getTiles();

@@ -100,7 +100,7 @@ public class GIE {
     /**
      * GIE Version
      */
-    public static final String VERSION = "0.2.6";
+    public static final String VERSION = "0.2.7";
 
     public static final String AUTHORS = "niko.popitsch@ccri.at";
 
@@ -325,8 +325,19 @@ public class GIE {
 	try {
 	    Date today = new Date();
 	    File backupDir = new File(GIE_DIRECTORY, backupSF.format(today));
-	    if (backupDir.exists())
-		throw new IOException("Backup directory already exists: " + backupDir);
+	    if (backupDir.exists()) {
+		// if an auto-snapshot was already created on this data and VARAN-GIE crashed before writing the snapshot date to the config...
+		if (new File(backupDir, GIE_CONFIG_FILE.getName()).exists()) {
+		    log.info("Backup directory already exists: " + backupDir);
+		    log.info(
+			    "Assuming that this backup was created before VARAN-GIE crashed. Incorporating snapshots data ...");
+		    // NOTE: backup data is not exact as backup was created before the current timestamp
+		    getBackupSnapshots().add(today);
+		    return true;
+		}
+		throw new IOException(
+			"Backup directory already exists but does not seem to contain VARAN-GIE data?: " + backupDir);
+	    }
 	    if (!backupDir.mkdir())
 		throw new IOException("Cannot create backup dir: " + backupDir);
 	    // copy all files from GIE home dir
@@ -1244,7 +1255,7 @@ public class GIE {
 	List<GIEDataset> ret = new ArrayList<>();
 	for (GIEDataset ds : getDatasets().values()) {
 	    if (ds.getCategory() == null || ds.getCategory().equals("") || ds.getCategory().equals(category)
-		    || category.equals(GIEMainDialog.FILTER_SHOW_ALL))
+		    || category==null || category.equals(GIEMainDialog.FILTER_SHOW_ALL))
 		ret.add(ds);
 	}
 	if (ret.size() == 0)
@@ -1430,10 +1441,10 @@ public class GIE {
 		    out.print(chr + "\t" + r.getStart() + "\t" + r.getEnd() + "\t" + r.getDescription() + "\t"
 			    + r.getScore() + "\t" + r.getStrand() + "\t" + r.getStart() + "\t" + r.getEnd() + "\t"
 			    + r.getColor());
-		    if ( annotations.length>0) {
-			// FIX: htsjdk BEDCodec assumes exon boundaries if >11 fields. 
-			// print blockCount blockSizes blockStarts   
-			out.print("\t1\t" + (r.getEnd()-r.getStart())+"\t0");
+		    if (annotations.length > 0) {
+			// FIX: htsjdk BEDCodec assumes exon boundaries if >11 fields.
+			// print blockCount blockSizes blockStarts
+			out.print("\t1\t" + (r.getEnd() - r.getStart()) + "\t0");
 		    }
 		    for (String cn : annotations)
 			try {

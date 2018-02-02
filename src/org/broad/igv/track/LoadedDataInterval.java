@@ -73,4 +73,9 @@ public class LoadedDataInterval<T> {
     public T getFeatures() {
         return scores;
     }
+    
+    @Override
+    public String toString() {
+        return range.toString();
+    }
 }

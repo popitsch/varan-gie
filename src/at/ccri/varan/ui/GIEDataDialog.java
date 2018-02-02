@@ -1003,6 +1003,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 		switch (columnIndex) {
 		case COLIDX_Start:
 		case COLIDX_End:
+		    return String.class;
 		case COLIDX_LINKED:
 		    return Integer.class;
 		case COLIDX_Score:
@@ -1780,7 +1781,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	}
 
     }
-
+    
     /**
      * For col sorting
      */

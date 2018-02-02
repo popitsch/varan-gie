@@ -97,7 +97,7 @@ public class GIENewDatasetDialog extends JDialog {
 
     // category text field + autocompletion
     private JTextField textField0;
-    private AutoCompletionListener autoComplete;
+    AutoCompletionListener autoComplete;
 
     public GIENewDatasetDialog(Frame owner) {
 	super(owner, "New Dataset", true);
@@ -428,6 +428,8 @@ public class GIENewDatasetDialog extends JDialog {
 
 		GIE.getInstance().loadDataset(name, null); // will automatically select latest created version.
 		// GIEDataDialog ddiag = GIEDataDialog.getInstance(IGV.getMainFrame()); // show data table
+		// reset filter if required
+		GIEMainDialog.getInstance().resetFilterIfNotShowing(category);
 		GIEMainDialog.getInstance().refresh();
 		saveCoords();
 		dispose();

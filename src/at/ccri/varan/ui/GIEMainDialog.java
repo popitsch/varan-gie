@@ -32,6 +32,8 @@ import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.Frame;
 import java.awt.GridLayout;
+import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
@@ -63,6 +65,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.JViewport;
 import javax.swing.ListSelectionModel;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.UIManager;
@@ -98,6 +101,7 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 
     public static Color COL_ODD_ROWS = Color.lightGray;
     public static Color COL_EVEN_ROWS = new Color(179, 191, 250);
+    public static Color COL_SELECTED_ROWS = Color.red;
 
     /**
      * Singleton instance
@@ -183,44 +187,61 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
      */
     private void reloadTable() {
 
-	DefaultTableModel model = (DefaultTableModel) table.getModel();
-	GIE gie = GIE.getInstance();
+	java.awt.EventQueue.invokeLater(new Runnable() {
+	    public void run() {
+		DefaultTableModel model = (DefaultTableModel) table.getModel();
+		GIE gie = GIE.getInstance();
 
-	String selected = (String) catCombo.getSelectedItem();
-	for (int i = model.getRowCount() - 1; i >= 0; i--) {
-	    model.removeRow(i);
-	}
-	int dx = 0;
-	for (GIEDataset d : gie.getDatasets(selected)) {
-	    int i = 0;
-	    for (GIEDatasetVersion v : d.getVersions().values()) {
-		List<String> entry = new ArrayList<String>();
-		entry.add(i == 0 ? d.getCategory() : "");
-		entry.add(i == 0 ? d.getName() : "");
-		entry.add(v.getVersionName());
-		entry.add(v.getActiveLayer().getLastModified());
-		entry.add("Load");
-		entry.add("Delete");
-		entry.add("Download");
-		entry.add(d.getName());
-		entry.add(dx % 2 == 0 ? "0" : "1");
-		model.addRow(entry.toArray());
-		i++;
+		String selected = (String) catCombo.getSelectedItem();
+		for (int i = model.getRowCount() - 1; i >= 0; i--) {
+		    model.removeRow(i);
+		}
+		int dx = 0;
+		String k = GIE.getInstance().getActiveDatasetName();
+		int activeDatasetIdx = 0;
+		for (GIEDataset d : gie.getDatasets(selected)) {
+		    int i = 0;
+		    for (GIEDatasetVersion v : d.getVersions().values()) {
+			List<String> entry = new ArrayList<String>();
+			entry.add(i == 0 ? d.getCategory() : "");
+			entry.add(i == 0 ? d.getName() : "");
+			entry.add(v.getVersionName());
+			entry.add(v.getActiveLayer().getLastModified());
+			entry.add("Load");
+			entry.add("Delete");
+			entry.add("Download");
+			entry.add(d.getName());
+			entry.add(dx % 2 == 0 ? "0" : "1");
+			model.addRow(entry.toArray());
+			i++;
+		    }
+		    dx++;
+		    if (k != null && d.getName().equals(k))
+			activeDatasetIdx = model.getRowCount();
+		}
+		model.fireTableDataChanged();
+		table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		// table.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
+		resizeColumnWidth(table);
+		// table.addMouseListener(new MyTablePopupHandler());
+
+		if (addDsVersionM != null) {
+		    if (gie.getActiveDataset() != null)
+			addDsVersionM.setEnabled(true);
+		    else
+			addDsVersionM.setEnabled(false);
+		}
+
+		// scroll to selected row, @see https://stackoverflow.com/questions/853020/jtable-scrolling-to-a-specified-row-index
+		Rectangle rect = new Rectangle(table.getCellRect(activeDatasetIdx, 0, true));
+		JViewport viewport = (JViewport) table.getParent();
+		if (viewport != null) {
+		    Point pt = viewport.getViewPosition();
+		    rect.setLocation(rect.x - pt.x, rect.y - pt.y);
+		    table.scrollRectToVisible(rect);
+		}
 	    }
-	    dx++;
-	}
-	model.fireTableDataChanged();
-	table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-	// table.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
-	resizeColumnWidth(table);
-	// table.addMouseListener(new MyTablePopupHandler());
-
-	if (addDsVersionM != null) {
-	    if (gie.getActiveDataset() != null)
-		addDsVersionM.setEnabled(true);
-	    else
-		addDsVersionM.setEnabled(false);
-	}
+	});
     }
 
     public void resizeColumnWidth(JTable table) {
@@ -625,7 +646,7 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 		if (k != null && v != null) {
 		    if (k != null && table.getModel().getValueAt(row, COLIDX_Name2).equals(k)
 			    && table.getModel().getValueAt(row, COLIDX_Ver).equals(v)) {
-			c.setBackground(Color.red);
+			c.setBackground(COL_SELECTED_ROWS);
 		    }
 		}
 		return c;
@@ -780,24 +801,49 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 	resizeColumnWidth(table);
 	pack();
 	setVisible(true);
+    }
 
+    /**
+     * Set the filter to *all* if the passed category is not shown.
+     * 
+     * @param cat
+     */
+    public void resetFilterIfNotShowing(String cat) {
+	String sel = (String) catCombo.getModel().getSelectedItem();
+	if (sel != null && !sel.equals(FILTER_SHOW_ALL) && !sel.equals(cat))
+	    resetFilter();
+    }
+
+    public void resetFilter() {
+	// update filter combobox and select all datasets
+	DefaultComboBoxModel<String> comboModel = (DefaultComboBoxModel<String>) catCombo.getModel();
+	comboModel.removeAllElements();
+	comboModel.addElement(FILTER_SHOW_ALL);
+	for (String cat : GIE.getInstance().getCategories())
+	    comboModel.addElement(cat);
+	comboModel.setSelectedItem(FILTER_SHOW_ALL);
     }
 
     public void refresh() {
-	if (GIE.getInstance().getActiveDataset() != null)
-	    descr.setText(GIE.getInstance().getActiveDataset().getCurrentVersion().getDescription());
-	try {
-	    reloadTable();
-	} catch (Exception e) {
-	    log.error("Could not reload table");
-	    e.printStackTrace();
-	}
-	if (isVisible()) {
-	    pack();
-	} else {
-	    setVisible(true);
-	    pack();
-	}
+	java.awt.EventQueue.invokeLater(new Runnable() {
+	    public void run() {
+
+		if (GIE.getInstance().getActiveDataset() != null)
+		    descr.setText(GIE.getInstance().getActiveDataset().getCurrentVersion().getDescription());
+		try {
+		    reloadTable();
+		} catch (Exception e) {
+		    log.error("Could not reload table");
+		    e.printStackTrace();
+		}
+		if (isVisible()) {
+		    pack();
+		} else {
+		    setVisible(true);
+		    pack();
+		}
+	    }
+	});
     }
 
     @Override

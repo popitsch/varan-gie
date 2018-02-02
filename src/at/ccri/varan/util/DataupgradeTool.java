@@ -56,8 +56,9 @@ public class DataupgradeTool {
     public static void main(String[] args) throws IOException {
 	
 	
-	updgradeFromAlpha3ToAlpha4(new File("C:/Users/niko.popitsch/igv/gie"), 
-		new File("C:/Users/niko.popitsch/igv/gie/upgrade"));
+	
+//	updgradeFromAlpha3ToAlpha4(new File("P:/Lab4/Teresa/gie"), 
+//		new File("C:/data/varan/corruptBed/convertedTeresaFolder"));
 	
 
     }

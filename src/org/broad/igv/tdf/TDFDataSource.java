@@ -66,426 +66,417 @@ public class TDFDataSource implements CoverageDataSource {
     float normalizationFactor = 1.0f;
     private Map<String, String> chrNameMap = new HashMap();
 
-
     public TDFDataSource(TDFReader reader, int trackNumber, String trackName, Genome genome) {
 
-        this.genome = genome;
-        this.trackNumber = trackNumber;
-        this.trackName = trackName;
-        this.reader = reader;
-        init();
-
+	this.genome = genome;
+	this.trackNumber = trackNumber;
+	this.trackName = trackName;
+	this.reader = reader;
+	init();
 
     }
 
     private void init() {
 
-        this.availableFunctions = reader.getWindowFunctions();
-        if(this.availableFunctions != null) {
-            this.availableFunctions.add(WindowFunction.none);   // Always available => raw data
-        }
+	this.availableFunctions = reader.getWindowFunctions();
+	if (this.availableFunctions != null) {
+	    this.availableFunctions.add(WindowFunction.none); // Always available => raw data
+	}
 
-        TDFGroup rootGroup = reader.getGroup("/");
-        try {
-            maxPrecomputedZoom = Integer.parseInt(rootGroup.getAttribute("maxZoom"));
-        } catch (Exception e) {
-            log.error("Error reading attribute 'maxZoom'", e);
-        }
-        try {
-            String dataGenome = rootGroup.getAttribute("genome");
-            // TODO -- throw exception if data genome != current genome
-        } catch (Exception e) {
-            log.error("Unknown genome " + rootGroup.getAttribute("genome"));
-            throw new RuntimeException("Unknown genome " + rootGroup.getAttribute("genome"));
-        }
+	TDFGroup rootGroup = reader.getGroup("/");
+	try {
+	    maxPrecomputedZoom = Integer.parseInt(rootGroup.getAttribute("maxZoom"));
+	} catch (Exception e) {
+	    log.error("Error reading attribute 'maxZoom'", e);
+	}
+	try {
+	    String dataGenome = rootGroup.getAttribute("genome");
+	    // TODO -- throw exception if data genome != current genome
+	} catch (Exception e) {
+	    log.error("Unknown genome " + rootGroup.getAttribute("genome"));
+	    throw new RuntimeException("Unknown genome " + rootGroup.getAttribute("genome"));
+	}
 
-        try {
-            String totalCountString = rootGroup.getAttribute("totalCount");
-            if (totalCountString != null) {
-                totalCount = Integer.parseInt(totalCountString);
-            }
-        } catch (Exception e) {
-            log.error("Error reading attribute 'totalCount'", e);
-        }
+	try {
+	    String totalCountString = rootGroup.getAttribute("totalCount");
+	    if (totalCountString != null) {
+		totalCount = Integer.parseInt(totalCountString);
+	    }
+	} catch (Exception e) {
+	    log.error("Error reading attribute 'totalCount'", e);
+	}
 
-        intChrMap();
+	intChrMap();
 
-        boolean normalizeCounts = PreferencesManager.getPreferences().getAsBoolean(Constants.NORMALIZE_COVERAGE);
-        setNormalize(normalizeCounts);
+	boolean normalizeCounts = PreferencesManager.getPreferences().getAsBoolean(Constants.NORMALIZE_COVERAGE);
+	setNormalize(normalizeCounts);
     }
 
     public void updateGenome(Genome genome) {
-        this.genome = genome;
-        chrNameMap.clear();
-        intChrMap();
+	this.genome = genome;
+	chrNameMap.clear();
+	intChrMap();
     }
 
     private void intChrMap() {
-        // If we have a genome, build a reverse-lookup table for queries
-        if (genome != null) {
-            Set<String> chrNames = reader.getChromosomeNames();
-            for (String chr : chrNames) {
-                String igvChr = genome.getCanonicalChrName(chr);
-                if (igvChr != null && !igvChr.equals(chr)) {
-                    chrNameMap.put(igvChr, chr);
-                }
-            }
-        }
+	// If we have a genome, build a reverse-lookup table for queries
+	if (genome != null) {
+	    Set<String> chrNames = reader.getChromosomeNames();
+	    for (String chr : chrNames) {
+		String igvChr = genome.getCanonicalChrName(chr);
+		if (igvChr != null && !igvChr.equals(chr)) {
+		    chrNameMap.put(igvChr, chr);
+		}
+	    }
+	}
     }
 
     public void setNormalize(boolean normalizeCounts) {
-        setNormalizeCounts(normalizeCounts, 1.0e6f);
+	setNormalizeCounts(normalizeCounts, 1.0e6f);
     }
 
     public boolean getNormalize() {
-        return this.normalizeCounts;
+	return this.normalizeCounts;
     }
 
     public void setNormalizeCounts(boolean normalizeCounts, float scalingFactor) {
-        this.normalizeCounts = normalizeCounts;
-        if (normalizeCounts && totalCount > 0) {
-            normalizationFactor = scalingFactor / totalCount;
-        } else {
-            normalizationFactor = 1;
-        }
+	this.normalizeCounts = normalizeCounts;
+	if (normalizeCounts && totalCount > 0) {
+	    normalizationFactor = scalingFactor / totalCount;
+	} else {
+	    normalizationFactor = 1;
+	}
 
     }
 
     public String getPath() {
-        return reader == null ? null : reader.getPath();
+	return reader == null ? null : reader.getPath();
     }
 
     public double getDataMax() {
-        return reader.getUpperLimit() * normalizationFactor;
+	return reader.getUpperLimit() * normalizationFactor;
     }
 
     public double getDataMin() {
-        return reader.getLowerLimit() * normalizationFactor;
+	return reader.getLowerLimit() * normalizationFactor;
     }
 
     private List<LocusScore> getCachedSummaryScores(String querySeq, int zoom, int tileNumber, double tileWidth) {
 
-        String key = querySeq + "_" + zoom + "_" + tileNumber + "_" + windowFunction;
+	String key = querySeq + "_" + zoom + "_" + tileNumber + "_" + windowFunction;
 
-        List<LocusScore> scores = summaryScoreCache.get(key);
-        if (scores == null) {
+	List<LocusScore> scores = summaryScoreCache.get(key);
+	if (scores == null) {
 
-            int startLocation = (int) (tileNumber * tileWidth);
-            int endLocation = (int) ((tileNumber + 1) * tileWidth);
+	    int startLocation = (int) (tileNumber * tileWidth);
+	    int endLocation = (int) ((tileNumber + 1) * tileWidth);
 
-            scores = getSummaryScores(querySeq, startLocation, endLocation, zoom);
+	    scores = getSummaryScores(querySeq, startLocation, endLocation, zoom);
 
-            summaryScoreCache.put(key, scores);
-        }
+	    summaryScoreCache.put(key, scores);
+	}
 
-        return scores;
+	return scores;
 
     }
 
     protected List<LocusScore> getSummaryScores(String querySeq, int startLocation, int endLocation, int zoom) {
 
-        if (this.availableFunctions == null) {
-            init();
-        }
+	if (this.availableFunctions == null) {
+	    init();
+	}
 
-        List<LocusScore> scores;
+	List<LocusScore> scores;
 
-        if (zoom <= this.maxPrecomputedZoom && windowFunction != WindowFunction.none) {
-            // Window function == none => no windowing, so its not clear what to do.  For now use mean
-            // WindowFunction wf = (windowFunction == WindowFunction.none ? WindowFunction.mean : windowFunction);
+	if (zoom <= this.maxPrecomputedZoom && windowFunction != WindowFunction.none) {
+	    // Window function == none => no windowing, so its not clear what to do. For now use mean
+	    // WindowFunction wf = (windowFunction == WindowFunction.none ? WindowFunction.mean : windowFunction);
 
-            List<TDFTile> tiles = null;
-            if (querySeq.equals(Globals.CHR_ALL) && !isChrOrderValid()) {
-                TDFTile wgTile = reader.getWholeGenomeTile(genome, windowFunction);
-                tiles = Arrays.asList(wgTile);
-            } else {
-                TDFDataset ds = reader.getDataset(querySeq, zoom, windowFunction);
-                if (ds != null) {
-                    tiles = ds.getTiles(startLocation, endLocation);
-                }
-            }
+	    List<TDFTile> tiles = null;
+	    if (querySeq.equals(Globals.CHR_ALL) && !isChrOrderValid()) {
+		TDFTile wgTile = reader.getWholeGenomeTile(genome, windowFunction);
+		tiles = Arrays.asList(wgTile);
+	    } else {
+		TDFDataset ds = reader.getDataset(querySeq, zoom, windowFunction);
+		if (ds != null) {
+		    tiles = ds.getTiles(startLocation, endLocation);
+		}
+	    }
 
-            scores = new ArrayList(1000);
-            if (tiles != null && tiles.size() > 0) {
-                for (TDFTile tile : tiles) {
+	    scores = new ArrayList(1000);
+	    if (tiles != null && tiles.size() > 0) {
+		for (TDFTile tile : tiles) {
 
-                    if (tile.getSize() > 0) {
-                        for (int i = 0; i < tile.getSize(); i++) {
-                            float v = tile.getValue(trackNumber, i);
-                            if (!Float.isNaN(v)) {
-                                v *= normalizationFactor;
-                                scores.add(new BasicScore(tile.getStartPosition(i), tile.getEndPosition(i), v));
-                            }
-                        }
-                    }
-                }
-            }
+		    if (tile.getSize() > 0) {
+			for (int i = 0; i < tile.getSize(); i++) {
+			    float v = tile.getValue(trackNumber, i);
+			    if (!Float.isNaN(v)) {
+				v *= normalizationFactor;
+				scores.add(new BasicScore(tile.getStartPosition(i), tile.getEndPosition(i), v));
+			    }
+			}
+		    }
+		}
+	    }
 
-        } else {
+	} else {
 
-            if (querySeq.equals(Globals.CHR_ALL)) {
-                scores = getWGRawScores();
-            } else {
-                scores = getLocusScoresForChr(querySeq, startLocation, endLocation, zoom);
-            }
-        }
-        return scores;
+	    if (querySeq.equals(Globals.CHR_ALL)) {
+		scores = getWGRawScores();
+	    } else {
+		scores = getLocusScoresForChr(querySeq, startLocation, endLocation, zoom);
+	    }
+	}
+	return scores;
     }
 
     private List<LocusScore> getLocusScoresForChr(String chr, int startLocation, int endLocation, int zoom) {
-        List<LocusScore> scores;
-        int chrLength = getChrLength(chr);
-        if (chrLength == 0) {
-            scores = Collections.emptyList();
-        } else {
-            endLocation = Math.min(endLocation, chrLength);
-            // By definition there are 2^z tiles per chromosome, and 700 bins per tile, where z is the zoom level.
-            // By definition there are 2^z tiles per chromosome, and 700 bins per tile, where z is the zoom level.
-            //int maxZoom = (int) (Math.log(chrLength / 700) / Globals.log2) + 1;
-            //int z = Math.min(zReq, maxZoom);
-            int nTiles = (int) Math.pow(2, zoom);
-            double binSize = Math.max(1, (((double) chrLength) / nTiles) / 700);
-            scores = computeSummaryScores(chr, startLocation, endLocation, binSize);
-        }
-        return scores;
+	List<LocusScore> scores;
+	int chrLength = getChrLength(chr);
+	if (chrLength == 0) {
+	    scores = Collections.emptyList();
+	} else {
+	    endLocation = Math.min(endLocation, chrLength);
+	    // By definition there are 2^z tiles per chromosome, and 700 bins per tile, where z is the zoom level.
+	    // By definition there are 2^z tiles per chromosome, and 700 bins per tile, where z is the zoom level.
+	    // int maxZoom = (int) (Math.log(chrLength / 700) / Globals.log2) + 1;
+	    // int z = Math.min(zReq, maxZoom);
+	    int nTiles = (int) Math.pow(2, zoom);
+	    double binSize = Math.max(1, (((double) chrLength) / nTiles) / 700);
+	    scores = computeSummaryScores(chr, startLocation, endLocation, binSize);
+	}
+	return scores;
     }
 
-
     public int getChrLength(String chr) {
-        if (chr.equals(Globals.CHR_ALL)) {
-            return (int) (genome.getNominalLength() / 1000);
-        } else {
-            Chromosome c = genome.getChromosome(chr);
-            return c == null ? 0 : c.getLength();
-        }
+	if (chr.equals(Globals.CHR_ALL)) {
+	    return (int) (genome.getNominalLength() / 1000);
+	} else {
+	    Chromosome c = genome.getChromosome(chr);
+	    return c == null ? 0 : c.getLength();
+	}
     }
 
     private List<LocusScore> getWGRawScores() {
 
-        List<LocusScore> scores = new ArrayList(10000);
+	List<LocusScore> scores = new ArrayList(10000);
 
-        for (String chr : genome.getAllChromosomeNames()) {
-            Chromosome c = genome.getChromosome(chr);
+	for (String chr : genome.getAllChromosomeNames()) {
+	    Chromosome c = genome.getChromosome(chr);
 
-            String dsName = "/" + chr + "/raw";
-            TDFDataset rawDataset = reader.getDataset(dsName);
-            if (rawDataset != null) {
-                List<TDFTile> rawTiles = rawDataset.getTiles(0, c.getLength());
-                if (rawTiles.size() > 0) {
-                    for (TDFTile rawTile : rawTiles) {
-                        // Tile of raw data
-                        if (rawTile != null && rawTile.getSize() > 0) {
+	    String dsName = "/" + chr + "/raw";
+	    TDFDataset rawDataset = reader.getDataset(dsName);
+	    if (rawDataset != null) {
+		List<TDFTile> rawTiles = rawDataset.getTiles(0, c.getLength());
+		if (rawTiles.size() > 0) {
+		    for (TDFTile rawTile : rawTiles) {
+			// Tile of raw data
+			if (rawTile != null && rawTile.getSize() > 0) {
 
-                            for (int i = 0; i < rawTile.getSize(); i++) {
-                                int s = genome.getGenomeCoordinate(chr, rawTile.getStartPosition(i));
-                                int e = genome.getGenomeCoordinate(chr, Math.max(s, rawTile.getEndPosition(i) - 1));
-                                float v = rawTile.getValue(trackNumber, i);
-                                if (!Float.isNaN(v)) {
-                                    v *= normalizationFactor;
-                                }
-                                scores.add(new BasicScore(s, e, v));
-                            }
-                        }
-                    }
+			    for (int i = 0; i < rawTile.getSize(); i++) {
+				int s = genome.getGenomeCoordinate(chr, rawTile.getStartPosition(i));
+				int e = genome.getGenomeCoordinate(chr, Math.max(s, rawTile.getEndPosition(i) - 1));
+				float v = rawTile.getValue(trackNumber, i);
+				if (!Float.isNaN(v)) {
+				    v *= normalizationFactor;
+				}
+				scores.add(new BasicScore(s, e, v));
+			    }
+			}
+		    }
 
-                }
-            }
-        }
-        return scores;
+		}
+	    }
+	}
+	return scores;
     }
 
     private List<LocusScore> computeSummaryScores(String chr, int startLocation, int endLocation, double scale) {
 
-        List<LocusScore> scores = new ArrayList(1000);
+	List<LocusScore> scores = new ArrayList(1000);
 
-        String dsName = "/" + chr + "/raw";
+	String dsName = "/" + chr + "/raw";
 
-        TDFDataset rawDataset = reader.getDataset(dsName);
-        if (rawDataset != null) {
-            List<TDFTile> rawTiles = rawDataset.getTiles(startLocation, endLocation);
-            if (rawTiles.size() > 0) {
+	TDFDataset rawDataset = reader.getDataset(dsName);
+	if (rawDataset != null) {
+	    List<TDFTile> rawTiles = rawDataset.getTiles(startLocation, endLocation);
+	    if (rawTiles.size() > 0) {
 
-                if (windowFunction == WindowFunction.none) {
-                    for (TDFTile rawTile : rawTiles) {
-                        // Tile of raw data
-                        if (rawTile != null && rawTile.getSize() > 0) {
+		if (windowFunction == WindowFunction.none) {
+		    for (TDFTile rawTile : rawTiles) {
+			// Tile of raw data
+			if (rawTile != null && rawTile.getSize() > 0) {
 
-                            for (int i = 0; i < rawTile.getSize(); i++) {
-                                int s = rawTile.getStartPosition(i);
-                                int e = Math.max(s, rawTile.getEndPosition(i) - 1);
+			    for (int i = 0; i < rawTile.getSize(); i++) {
+				int s = rawTile.getStartPosition(i);
+				int e = Math.max(s, rawTile.getEndPosition(i) - 1);
 
-                                if (e < startLocation) {
-                                    continue;
-                                } else if (s > endLocation) {
-                                    break;
-                                }
-                                float v = rawTile.getValue(trackNumber, i);
-                                if (!Float.isNaN(v)) {
-                                    v *= normalizationFactor;
-                                }
-                                scores.add(new BasicScore(s, e, v));
-                            }
-                        }
-                    }
+				if (e < startLocation) {
+				    continue;
+				} else if (s > endLocation) {
+				    break;
+				}
+				float v = rawTile.getValue(trackNumber, i);
+				if (!Float.isNaN(v)) {
+				    v *= normalizationFactor;
+				}
+				scores.add(new BasicScore(s, e, v));
+			    }
+			}
+		    }
 
+		} else {
 
-                } else {
+		    Accumulator accumulator = new Accumulator(windowFunction, 5);
+		    int accumulatedStart = -1;
+		    int accumulatedEnd = -1;
+		    int lastEndBin = 0;
+		    for (TDFTile rawTile : rawTiles) {
+			// Tile of raw data
+			int size = rawTile.getSize();
+			if (rawTile != null && size > 0) {
 
+			    int[] starts = rawTile.getStart();
+			    int[] ends = rawTile.getEnd();
+			    String[] features = rawTile.getNames();
+			    float[] values = rawTile.getData(trackNumber);
 
-                    Accumulator accumulator = new Accumulator(windowFunction, 5);
-                    int accumulatedStart = -1;
-                    int accumulatedEnd = -1;
-                    int lastEndBin = 0;
-                    for (TDFTile rawTile : rawTiles) {
-                        // Tile of raw data
-                        int size = rawTile.getSize();
-                        if (rawTile != null && size > 0) {
+			    // Loop through and bin scores for this interval.
+			    for (int i = 0; i < size; i++) {
 
-                            int[] starts = rawTile.getStart();
-                            int[] ends = rawTile.getEnd();
-                            String[] features = rawTile.getNames();
-                            float[] values = rawTile.getData(trackNumber);
+				if (starts[i] >= endLocation) {
+				    break; // We're beyond the end of the requested interval
+				}
 
-                            // Loop through and bin scores for this interval.
-                            for (int i = 0; i < size; i++) {
+				int s = Math.max(startLocation, starts[i]);
+				int e = ends == null ? s + 1 : Math.min(endLocation, ends[i]);
+				float v = values[i] * normalizationFactor;
 
-                                if (starts[i] >= endLocation) {
-                                    break;  // We're beyond the end of the requested interval
-                                }
+				if (e < startLocation || Float.isNaN(v)) {
+				    continue;
+				}
 
+				String probeName = features == null ? null : features[i];
 
-                                int s = Math.max(startLocation, starts[i]);
-                                int e = ends == null ? s + 1 : Math.min(endLocation, ends[i]);
-                                float v = values[i] * normalizationFactor;
+				// Compute bin numbers, relative to start of this tile
+				int endBin = (int) ((e - startLocation) / scale);
+				int startBin = (int) ((s - startLocation) / scale);
 
-                                if (e < startLocation || Float.isNaN(v)) {
-                                    continue;
-                                }
+				// If this feature spans multiple bins, or extends beyond last end bin, record
+				if (endBin > lastEndBin || endBin > startBin) {
+				    if (accumulator.hasData()) {
+					scores.add(getCompositeScore(accumulator, accumulatedStart, accumulatedEnd));
+					accumulator = new Accumulator(windowFunction, 5);
+				    }
+				}
 
-                                String probeName = features == null ? null : features[i];
+				if (endBin > startBin) {
+				    scores.add(new NamedScore(s, e, v, probeName));
+				} else {
+				    if (!accumulator.hasData()) {
+					accumulatedStart = s;
+					accumulatedEnd = e;
+					accumulator.add(e - s, v, probeName);
+				    }
 
-                                // Compute bin numbers, relative to start of this tile
-                                int endBin = (int) ((e - startLocation) / scale);
-                                int startBin = (int) ((s - startLocation) / scale);
+				}
 
-                                // If this feature spans multiple bins, or extends beyond last end bin, record
-                                if (endBin > lastEndBin || endBin > startBin) {
-                                    if (accumulator.hasData()) {
-                                        scores.add(getCompositeScore(accumulator, accumulatedStart, accumulatedEnd));
-                                        accumulator = new Accumulator(windowFunction, 5);
-                                    }
-                                }
+				lastEndBin = endBin;
+			    }
 
-                                if (endBin > startBin) {
-                                    scores.add(new NamedScore(s, e, v, probeName));
-                                } else {
-                                    if (!accumulator.hasData()) {
-                                        accumulatedStart = s;
-                                        accumulatedEnd = e;
-                                        accumulator.add(e - s, v, probeName);
-                                    }
-
-                                }
-
-                                lastEndBin = endBin;
-                            }
-
-                            // End of loop cleanup
-                            if (accumulator.hasData()) {
-                                scores.add(getCompositeScore(accumulator, accumulatedStart, accumulatedEnd));
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return scores;
+			    // End of loop cleanup
+			    if (accumulator.hasData()) {
+				scores.add(getCompositeScore(accumulator, accumulatedStart, accumulatedEnd));
+			    }
+			}
+		    }
+		}
+	    }
+	}
+	return scores;
     }
-
 
     private LocusScore getCompositeScore(Accumulator accumulator, int accumulatedStart, int accumulatedEnd) {
-        LocusScore ls;
-        if (accumulator.getNpts() == 1) {
+	LocusScore ls;
+	if (accumulator.getNpts() == 1) {
             ls = new NamedScore(accumulatedStart, accumulatedEnd, accumulator.getRepData()[0], accumulator.getRepProbes()[0]);
-        } else {
-            float value = accumulator.getValue();
-            ls = new CompositeScore(accumulatedStart, accumulatedEnd, value, accumulator.getRepData(),
-                    accumulator.getRepProbes(), windowFunction);
-        }
-        return ls;
+	} else {
+	    float value = accumulator.getValue();
+	    ls = new CompositeScore(accumulatedStart, accumulatedEnd, value, accumulator.getRepData(),
+		    accumulator.getRepProbes(), windowFunction);
+	}
+	return ls;
 
     }
-
-
 
     public List<LocusScore> getSummaryScoresForRange(String chr, int startLocation, int endLocation, int zoom) {
 
-        Chromosome chromosome = genome.getChromosome(chr);
-        if (chromosome != null) {
-            endLocation = Math.min(chromosome.getLength(), endLocation);
-        }
+	Chromosome chromosome = genome.getChromosome(chr);
+	if (chromosome != null) {
+	    endLocation = Math.min(chromosome.getLength(), endLocation);
+	}
 
-        String tmp = chrNameMap.get(chr);
-        String querySeq = tmp == null ? chr : tmp;
+	String tmp = chrNameMap.get(chr);
+	String querySeq = tmp == null ? chr : tmp;
 
-        ArrayList scores = new ArrayList();
+	ArrayList scores = new ArrayList();
 
-        // TODO -- this whole section could be computed once and stored,  it is only a function of the genome, chr, and zoom level.
-        int tileWidth = 0;
-        if (chr.equals(Globals.CHR_ALL)) {
-            tileWidth = (int) Math.ceil(genome.getNominalLength() / 1000.0);
-        } else {
-            if (chromosome != null) {
-                tileWidth = chromosome.getLength() / ((int) Math.pow(2.0, zoom));
-            }
-        }
-        if (tileWidth == 0) {
-            return null;
-        }
+	// TODO -- this whole section could be computed once and stored, it is only a function of the genome, chr, and zoom level.
+	int tileWidth = 0;
+	if (chr.equals(Globals.CHR_ALL)) {
+	    tileWidth = (int) Math.ceil(genome.getNominalLength() / 1000.0);
+	} else {
+	    if (chromosome != null) {
+		tileWidth = chromosome.getLength() / ((int) Math.pow(2.0, zoom));
+	    }
+	}
+	if (tileWidth == 0) {
+	    return null;
+	}
 
-        int startTile = (startLocation / tileWidth);
-        int endTile = ((endLocation - 1) / tileWidth);
+	int startTile = (startLocation / tileWidth);
+	int endTile = ((endLocation - 1) / tileWidth);
 
-        for (int t = startTile; t <= endTile; t++) {
-            List<LocusScore> cachedScores = getCachedSummaryScores(querySeq, zoom, t, tileWidth);
-            if (cachedScores != null) {
-                for (LocusScore s : cachedScores) {
-                    if (s.getEnd() >= startLocation) {
-                        scores.add(s);
-                    } else if (s.getStart() > endLocation) {
-                        break;
-                    }
-                }
-            }
-        }
+	for (int t = startTile; t <= endTile; t++) {
+	    List<LocusScore> cachedScores = getCachedSummaryScores(querySeq, zoom, t, tileWidth);
+	    if (cachedScores != null) {
+		for (LocusScore s : cachedScores) {
+		    if (s.getEnd() >= startLocation) {
+			scores.add(s);
+		    } else if (s.getStart() > endLocation) {
+			break;
+		    }
+		}
+	    }
+	}
 
-        return scores;
+	return scores;
 
     }
 
     public TrackType getTrackType() {
-        return reader.getTrackType();
+	return reader.getTrackType();
     }
 
     public void setWindowFunction(WindowFunction wf) {
-        this.windowFunction = wf;
+	this.windowFunction = wf;
     }
 
     public boolean isLogNormalized() {
-        //return false;
-        return getDataMin() < 0;
+	// return false;
+	return getDataMin() < 0;
     }
 
     public void refreshData(long timestamp) {
-        // ignored
+	// ignored
     }
 
     public WindowFunction getWindowFunction() {
-        return windowFunction;
+	return windowFunction;
     }
 
     public Collection<WindowFunction> getAvailableWindowFunctions() {
-        return availableFunctions;
+	return availableFunctions;
     }
 
     @Override
@@ -502,37 +493,35 @@ public class TDFDataSource implements CoverageDataSource {
      * @return Whether we believe the data stored for whole genome view is valid or not
      */
     boolean isChrOrderValid() {
+	if (reader.getVersion() >= 4) {
 
-        if (reader.getVersion() >= 4) {
-
-            String chromosomeNames;
-            List<String> fileChromos = null;
-            //Extract the chromosome names. Not sure when that attribute was put in
-            //If it's not in the file, give up
-            try {
-                TDFGroup rootGroup = reader.getGroup(TDFWriter.ROOT_GROUP);
-                chromosomeNames = rootGroup.getAttribute(TDFWriter.CHROMOSOMES);
-                fileChromos = new ArrayList<String>(Arrays.asList(chromosomeNames.split(",")));
-            } catch (Exception e) {
-                return false;
-            }
-            return checkChromoNameOrder(fileChromos, genome.getLongChromosomeNames());
-        } else if (genome != null) {
-            // The WELL_KNOWN_GENOMES have had stable chromosome order since initial release
-            String genomeId = genome.getId();
-            return WELL_KNOWN_GENOMES.contains(genomeId);
-        } else {
-            // Can't be sure
-            return false;
-        }
+	    String chromosomeNames;
+	    List<String> fileChromos = null;
+	    // Extract the chromosome names. Not sure when that attribute was put in
+	    // If it's not in the file, give up
+	    try {
+		TDFGroup rootGroup = reader.getGroup(TDFWriter.ROOT_GROUP);
+		chromosomeNames = rootGroup.getAttribute(TDFWriter.CHROMOSOMES);
+		fileChromos = new ArrayList<String>(Arrays.asList(chromosomeNames.split(",")));
+	    } catch (Exception e) {
+		return false;
+	    }
+	    return checkChromoNameOrder(fileChromos, genome.getLongChromosomeNames());
+	} else if (genome != null) {
+	    // The WELL_KNOWN_GENOMES have had stable chromosome order since initial release
+	    String genomeId = genome.getId();
+	    return WELL_KNOWN_GENOMES.contains(genomeId);
+	} else {
+	    // Can't be sure
+	    return false;
+	}
 
     }
 
-
     /**
-     * Check the sort.  It is acceptable to have different #s of chromosomes in the two lists, but they must
-     * start with the same value and be in the same order to the extent they overlap.   Less genome chrs than file
-     * chrs => extra data at the end.  Less file chrs than genome chrs => we'll have white space on the end.  In
+     * Check the sort. It is acceptable to have different #s of chromosomes in the two lists, but they must
+     * start with the same value and be in the same order to the extent they overlap. Less genome chrs than file
+     * chrs => extra data at the end. Less file chrs than genome chrs => we'll have white space on the end. In
      * both cases the data that is shown will be valid.
      *
      * @param fileChromos
@@ -542,12 +531,12 @@ public class TDFDataSource implements CoverageDataSource {
      */
     static boolean checkChromoNameOrder(List<String> fileChromos, List<String> genomeChromos) {
 
-        int chrCount = Math.min(fileChromos.size(), genomeChromos.size());
-        for (int i = 0; i < chrCount; i++) {
+	int chrCount = Math.min(fileChromos.size(), genomeChromos.size());
+	for (int i = 0; i < chrCount; i++) {
             if (!fileChromos.get(i).equals(genomeChromos.get(i))) return false;
-        }
-        //If we get this far, the chromo order is good as far as we know
-        return true;
+	}
+	// If we get this far, the chromo order is good as far as we know
+	return true;
     }
 
 

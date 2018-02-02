@@ -80,6 +80,11 @@ public class DataRange{
     //Here for JAXB Compatibility
     private DataRange(){}
 
+    @Override
+    public String toString() {
+        return "[" + minimum + ", " + baseline + ", " + maximum + "]";
+    }
+    
     public DataRange(float minimum, float maximum) {
         this(minimum, minimum, maximum, true);
     }
@@ -142,6 +147,7 @@ public class DataRange{
     }
 
     public static DataRange getFromTracks(Collection<? extends Track> tracks){
+	
         float min = Float.MAX_VALUE;
         float max = Float.MIN_VALUE;
         float mid = 0;

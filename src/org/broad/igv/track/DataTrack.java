@@ -195,7 +195,7 @@ public abstract class DataTrack extends AbstractTrack implements ScalableTrack, 
         }
 
         List<LocusScore> inViewScores = interval.getFeatures();
-
+        
         // Trim scores
         int startIdx = FeatureUtils.getIndexBefore(start, inViewScores);
         int endIdx = inViewScores.size();   // Starting guess
