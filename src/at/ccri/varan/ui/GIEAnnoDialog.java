@@ -182,7 +182,7 @@ public class GIEAnnoDialog extends JDialog {
 	    if (width > 300)
 		width = 300;
 	    columnModel.getColumn(column).setPreferredWidth(width);
-	    columnModel.getColumn(column).setMinWidth(width);
+	    columnModel.getColumn(column).setMinWidth(min_widths[column]);
 	}
     }
 

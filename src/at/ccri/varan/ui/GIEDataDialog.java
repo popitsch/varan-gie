@@ -296,7 +296,6 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 		    GIEDatasetVersionLayer activeLayer = GIE.getInstance().getActiveDataset().getCurrentVersion()
 			    .getActiveLayer();
 
-		  
 		    // // remove filter
 		    // javax.swing.RowFilter<? super TableModel, ? super Integer> filter = tableSorter.getRowFilter();
 		    // tableSorter.setRowFilter(null);
@@ -467,7 +466,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
      */
     public List<RegionOfInterest> getSelectedRegions() {
 	List<RegionOfInterest> selectedRegions = new ArrayList<RegionOfInterest>();
-	// convert to real indicces
+	// convert to real indices
 	int[] selectedRows = getSelectedRows();
 	if (selectedRows == null)
 	    return selectedRegions;
@@ -864,8 +863,23 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	});
 	statsM.add(calcStatsM);
 	menuBar.add(statsM);
-	
-	
+
+	// ------------------------------- LINKS ------------------------------------------------
+	JMenu linksM = new JMenu("Links");
+	linksM.setOpaque(false);
+	linksM.setBackground(MENU_COL);
+
+	JMenuItem showLinksM = new JMenuItem("Show Links");
+	showLinksM.setToolTipText("Show configured links in the selected layer");
+	showLinksM.addActionListener(new ActionListener() {
+	    public void actionPerformed(ActionEvent e) {
+		new GIELinksDialog(IGV.getMainFrame());
+	    }
+	});
+	linksM.add(showLinksM);
+	menuBar.add(linksM);
+
+
 	// ------------------------------- KARY ------------------------------------------------
 	JMenu karyM = new JMenu("Visualize");
 	karyM.setOpaque(false);
@@ -880,8 +894,6 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	});
 	karyM.add(calcKaryM);
 	menuBar.add(karyM);
-	
-	
 
 	/**
 	 * header label
@@ -1105,7 +1117,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 		boolean isLinked = table.getModel().getValueAt(table.convertRowIndexToModel(row), COLIDX_LINKED)
 			.toString().equals("1");
 		if (isLinked)
-		    c.setForeground( Color.BLUE);
+		    c.setForeground(Color.BLUE);
 		else
 		    c.setForeground(Color.BLACK);
 		return c;
@@ -1411,6 +1423,35 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 			    }
 			});
 			popupMenu.add(viewItem3);
+
+			// linked?
+			for (ROILink rl : activeLayer.getLinks()) {
+			    if (rl.getSource().equals(selectedRegion)) {
+				JMenuItem viewItem4 = new JMenuItem(
+					"Show linked target [" + rl.getTarget().toString() + "]");
+				viewItem4.addActionListener(new ActionListener() {
+				    public void actionPerformed(ActionEvent e) {
+
+					navigateTo(new RegionOfInterest(rl.getTarget().getChr(),
+						rl.getTarget().getDisplayStart() - 1000,
+						rl.getTarget().getDisplayEnd() + 1000, null));
+				    }
+				});
+				popupMenu.add(viewItem4);
+
+			    } else if (rl.getTarget().equals(selectedRegion)) {
+				JMenuItem viewItem4 = new JMenuItem(
+					"Show linked source [" + rl.getSource().toString() + "]");
+				viewItem4.addActionListener(new ActionListener() {
+				    public void actionPerformed(ActionEvent e) {
+					navigateTo(new RegionOfInterest(rl.getSource().getChr(),
+						rl.getSource().getDisplayStart() - 1000,
+						rl.getSource().getDisplayEnd() + 1000, null));
+				    }
+				});
+				popupMenu.add(viewItem4);
+			    }
+			}
 
 			popupMenu.addSeparator();
 		    }
@@ -1724,7 +1765,6 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 			    createLinkItem.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 				    ROILink rl = new ROILink(linkSourceROI, roi, TYPE.FUSION);
-				    System.err.println("Created  " + rl);
 				    activeLayer.addLink(rl);
 				    refresh();
 				    linkSourceROI = null;
@@ -1741,7 +1781,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 			    JMenuItem deleteLinkItem = new JMenuItem("Delete links...");
 			    deleteLinkItem.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
-				    activeLayer.deleteLinks( roi );
+				    activeLayer.deleteLinks(roi);
 				    refresh();
 				    linkSourceROI = null;
 				}
@@ -1781,7 +1821,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	}
 
     }
-    
+
     /**
      * For col sorting
      */

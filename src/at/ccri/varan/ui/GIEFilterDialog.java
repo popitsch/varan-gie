@@ -37,6 +37,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -280,8 +281,20 @@ public class GIEFilterDialog extends JDialog implements Observer, IGVEventObserv
 	    @Override
 	    public void actionPerformed(ActionEvent e) {
 		String key = JOptionPane.showInputDialog("Filter", "");
-		if (key != null)
-		    listModel.addElement(key);
+		if (key != null) {
+		    try {
+			GIEAttributeFilter fil = GIEAttributeFilter.parseFromString(key);
+			if (fil == null)
+			    throw new ParseException("Invalid operator in filter string: " + key, 1);
+			if (!GIEDataDialog.getInstance().getColumnNames().contains(fil.getKey()))
+			    throw new ParseException("Invalid attribute name in filter string: " + key, 1);
+			listModel.addElement(key);
+		    } catch (Exception ex) {
+			JOptionPane.showMessageDialog(null,
+				"<html><body>Error parsing filter:<br>" + ex + "</body></html>", "Error",
+				JOptionPane.ERROR_MESSAGE);
+		    }
+		}
 	    }
 	});
 	p3.add(abut);

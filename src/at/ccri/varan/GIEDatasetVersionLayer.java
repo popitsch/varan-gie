@@ -154,7 +154,7 @@ public class GIEDatasetVersionLayer {
 		    roi.setScore(t[4]);
 		    roi.setStrand(t[5]);
 		    roi.setColor(t[8]);
-		    // skip blockCount blockSizes blockStarts   
+		    // skip blockCount blockSizes blockStarts
 		    for (int i = 12; i < t.length; i++)
 			roi.addAnnotation(annotations[i - 12], URLDecoder.decode(t[i], "UTF-8"));
 		    regions.add(roi);
@@ -507,16 +507,26 @@ public class GIEDatasetVersionLayer {
 	}
 	return ret;
     }
-    
+
+    public void deleteLink(ROILink rl) {
+	links.remove(rl);
+    }
+
+    public void deleteLinks(List<ROILink> rls) {
+	for (ROILink rl : rls)
+	    links.remove(rl);
+    }
+
     /**
      * Delete all links containing the passed ROI.F
+     * 
      * @param roi
      */
     public void deleteLinks(RegionOfInterest roi) {
 	Iterator<ROILink> it = getLinks().iterator();
-	while ( it.hasNext())  {
+	while (it.hasNext()) {
 	    ROILink rl = it.next();
-	    if ( rl.getSource().equals(roi) || rl.getTarget().equals(roi) )
+	    if (rl.getSource().equals(roi) || rl.getTarget().equals(roi))
 		it.remove();
 	}
     }
@@ -525,6 +535,5 @@ public class GIEDatasetVersionLayer {
     public String toString() {
 	return "[l" + layerName + "@" + dataFile + "]";
     }
-
 
 }

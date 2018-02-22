@@ -1,14 +1,10 @@
 package at.ccri.varan.ui;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.SortedSet;
 import java.util.Stack;
-import java.util.TreeSet;
 
 import org.broad.igv.feature.RegionOfInterest;
-import org.broad.igv.ui.util.ReorderableJList;
 
 /**
  * undo handler singleton. Stores stacks of added/removed intervals.
@@ -26,7 +22,7 @@ public class UndoHandler {
     Stack<List<RegionOfInterest>> redoRemoved = new Stack<>();
     List<RegionOfInterest> lastRedoAdded = new ArrayList<>();
     List<RegionOfInterest> lastRedoRemoved = new ArrayList<>();
-    
+
     private static UndoHandler instance;
 
     private UndoHandler() {
@@ -42,7 +38,7 @@ public class UndoHandler {
     public void addUndoStep(List<RegionOfInterest> now) {
 	List<RegionOfInterest> toadd = new ArrayList<>();
 	List<RegionOfInterest> todel = new ArrayList<>();
-	
+
 	if (previous == null) {
 	    toadd = now;
 	} else {
@@ -59,11 +55,11 @@ public class UndoHandler {
 	    added.add(toadd);
 	    removed.add(todel);
 	    // clear redo buffeers unless last action was redo.
-	    if ( ! (lastRedoAdded.equals(toadd) && lastRedoRemoved.equals(todel))) {
+	    if (!(lastRedoAdded.equals(toadd) && lastRedoRemoved.equals(todel))) {
 		redoAdded.clear();
 		redoRemoved.clear();
 	    }
-	    
+
 	}
     }
 
@@ -99,31 +95,28 @@ public class UndoHandler {
     public List<RegionOfInterest> redo() {
 	if (redoAdded.isEmpty())
 	    return previous;
-	
+
 	List<RegionOfInterest> todel = redoRemoved.pop();
 	List<RegionOfInterest> toadd = redoAdded.pop();
 
 	lastRedoAdded = toadd;
 	lastRedoRemoved = todel;
-//	
-//	
-//	System.out.println("REDO " + todel + " / " + toadd + " / " + previous);
-//	
+	//
+	//
+	// System.out.println("REDO " + todel + " / " + toadd + " / " + previous);
+	//
 	if (todel == null || toadd == null)
 	    return null;
 
 	previous.removeAll(todel);
 	previous.addAll(toadd);
 
-	
 	added.push(toadd);
 	removed.push(todel);
-	
-	
+
 	return previous;
     }
-    
-    
+
     public void clear() {
 	added.clear();
 	removed.clear();
@@ -137,19 +130,17 @@ public class UndoHandler {
 	return previous == null;
     }
 
-    
-    public static void main(String[] args) {
-	 SortedSet<Date> backupSnapshots = new TreeSet<>();
-	 backupSnapshots.add( new Date(2017, 8, 10));
-	 backupSnapshots.add( new Date(2017, 9, 12));
-	 backupSnapshots.add( new Date(2017, 9, 13));
-	 
-	 
-	 // get latest date
-	System.out.println( backupSnapshots.last() );
-	 
-	 System.out.println(backupSnapshots);
-	 
-    }
-    
+    // public static void main(String[] args) {
+    // SortedSet<Date> backupSnapshots = new TreeSet<>();
+    // backupSnapshots.add(new Date(2017, 8, 10));
+    // backupSnapshots.add(new Date(2017, 9, 12));
+    // backupSnapshots.add(new Date(2017, 9, 13));
+    //
+    // // get latest date
+    // System.out.println(backupSnapshots.last());
+    //
+    // System.out.println(backupSnapshots);
+    //
+    // }
+
 }

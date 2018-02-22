@@ -63,7 +63,10 @@ import org.broad.igv.util.LongRunningTask;
 import org.broad.igv.util.NamedRunnable;
 import org.broad.igv.util.blat.BlatClient;
 
+import at.ccri.varan.GIE;
+import at.ccri.varan.GIEDatasetVersionLayer;
 import at.ccri.varan.ui.GIEDataDialog;
+import at.ccri.varan.ui.ROILink;
 
 /**
  * @author eflakes
@@ -176,7 +179,7 @@ public class RegionOfInterestPanel extends JPanel {
 	    }
 	});
 	popupMenu.add(item);
-	
+
 	item = new JMenuItem("Select visible in data table");
 	item.addActionListener(new ActionListener() {
 	    public void actionPerformed(ActionEvent e) {
@@ -186,14 +189,14 @@ public class RegionOfInterestPanel extends JPanel {
 	    }
 	});
 	popupMenu.add(item);
-	
+
 	popupMenu.addSeparator();
-	
+
 	item = new JMenuItem("Show start");
 	item.addActionListener(new ActionListener() {
 	    public void actionPerformed(ActionEvent e) {
-		String locusString = roi.getChr()+":"+(roi.getStart()-1000)+"-"+(roi.getStart()+1000);
-		frame.jumpTo(roi.getChr(), roi.getStart()-1000, roi.getStart()+1000);
+		String locusString = roi.getChr() + ":" + (roi.getStart() - 1000) + "-" + (roi.getStart() + 1000);
+		frame.jumpTo(roi.getChr(), roi.getStart() - 1000, roi.getStart() + 1000);
 		IGV.getInstance().getSession().getHistory().push(locusString, frame.getZoom());
 	    }
 	});
@@ -202,13 +205,13 @@ public class RegionOfInterestPanel extends JPanel {
 	item = new JMenuItem("Show end");
 	item.addActionListener(new ActionListener() {
 	    public void actionPerformed(ActionEvent e) {
-		String locusString = roi.getChr()+":"+(roi.getEnd()-1000)+"-"+(roi.getEnd()+1000);
-		frame.jumpTo(roi.getChr(), roi.getEnd()-1000, roi.getEnd()+1000);
+		String locusString = roi.getChr() + ":" + (roi.getEnd() - 1000) + "-" + (roi.getEnd() + 1000);
+		frame.jumpTo(roi.getChr(), roi.getEnd() - 1000, roi.getEnd() + 1000);
 		IGV.getInstance().getSession().getHistory().push(locusString, frame.getZoom());
 	    }
 	});
 	popupMenu.add(item);
-	
+
 	item = new JMenuItem("Show all");
 	item.addActionListener(new ActionListener() {
 
@@ -223,6 +226,43 @@ public class RegionOfInterestPanel extends JPanel {
 	});
 	popupMenu.add(item);
 
+	// linked?
+	GIEDatasetVersionLayer activeLayer = null;
+	if (GIE.getInstance().getActiveDataset() != null
+		&& GIE.getInstance().getActiveDataset().getCurrentVersion() != null)
+	    activeLayer = GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer();
+	if (activeLayer != null && activeLayer.getLinkedROIs().contains(roi)) {
+	    for (ROILink rl : activeLayer.getLinks()) {
+		if (rl.getSource().equals(selectedRegion)) {
+		    JMenuItem viewItem4 = new JMenuItem("Show linked target [" + rl.getTarget().toString() + "]");
+		    viewItem4.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+			    String locusString = rl.getTarget().getChr() + ":"
+				    + (rl.getTarget().getDisplayStart() - 1000) + "-"
+				    + (rl.getTarget().getDisplayEnd() + 1000);
+			    frame.jumpTo(rl.getTarget().getChr(), rl.getTarget().getDisplayStart() - 1000,
+				    rl.getTarget().getDisplayEnd() + 1000);
+			    IGV.getInstance().getSession().getHistory().push(locusString, frame.getZoom());
+			}
+		    });
+		    popupMenu.add(viewItem4);
+
+		} else if (rl.getTarget().equals(selectedRegion)) {
+		    JMenuItem viewItem4 = new JMenuItem("Show linked source [" + rl.getSource().toString() + "]");
+		    viewItem4.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+			    String locusString = rl.getSource().getChr() + ":"
+				    + (rl.getSource().getDisplayStart() - 1000) + "-"
+				    + (rl.getSource().getDisplayEnd() + 1000);
+			    frame.jumpTo(rl.getSource().getChr(), rl.getSource().getDisplayStart() - 1000,
+				    rl.getSource().getDisplayEnd() + 1000);
+			    IGV.getInstance().getSession().getHistory().push(locusString, frame.getZoom());
+			}
+		    });
+		    popupMenu.add(viewItem4);
+		}
+	    }
+	}
 
 	popupMenu.addSeparator();
 
@@ -284,7 +324,7 @@ public class RegionOfInterestPanel extends JPanel {
 		    }
 		    p = r;
 		}
-		if (p == null || !roi.getChr().equals(p.getChr())) {
+		if (p == null || !roi.getChr().equals(p.getChr()) || p.equals(roi)) {
 		    System.out.println("Could not find downstream ROI of " + roi);
 		    return;
 		}
@@ -298,6 +338,80 @@ public class RegionOfInterestPanel extends JPanel {
 	    }
 	});
 	popupMenu.add(item);
+
+	popupMenu.addSeparator();
+
+	item = new JMenuItem("Attach to upstream");
+	item.addActionListener(new ActionListener() {
+	    public void actionPerformed(ActionEvent e) {
+		RegionOfInterest p = null;
+		SortedSet<RegionOfInterest> rois = new TreeSet<>();
+		rois.addAll(IGV.getInstance().getSession().getAllRegionsOfInterest());
+		for (RegionOfInterest r : rois) {
+		    if (r.equals(roi))
+			break;
+		    p = r;
+		}
+		if (p == null || !roi.getChr().equals(p.getChr())) {
+		    System.out.println("Could not find upstream ROI of " + roi);
+		    return;
+		}
+
+		if (roi.getStart() <= p.getEnd()) // nothing to do.
+		    return;
+
+		RegionOfInterest attached = new RegionOfInterest(roi.getChr(), p.getEnd(), roi.getEnd(),
+			roi.getDescription());
+		IGV.getInstance().getSession().addROI(attached, false, true);
+		ArrayList<RegionOfInterest> todel = new ArrayList<RegionOfInterest>();
+		todel.add(roi);
+		IGV.getInstance().getSession().removeROI(todel);
+
+		if (RegionNavigatorDialog.activeInstance != null)
+		    RegionNavigatorDialog.activeInstance.synchRegions();
+		IGV.getInstance().getSession().getRegionsOfInterestObservable().setChangedAndNotify();
+		IGV.getInstance().revalidateTrackPanels();
+	    }
+	});
+	popupMenu.add(item);
+
+	item = new JMenuItem("Attach to dowstream");
+	item.addActionListener(new ActionListener() {
+	    public void actionPerformed(ActionEvent e) {
+		RegionOfInterest p = null;
+		SortedSet<RegionOfInterest> rois = new TreeSet<>();
+		rois.addAll(IGV.getInstance().getSession().getAllRegionsOfInterest());
+		for (RegionOfInterest r : rois) {
+		    if (p != null && p.equals(roi)) {
+			p = r;
+			break;
+		    }
+		    p = r;
+		}
+		if (p == null || !roi.getChr().equals(p.getChr()) || p.equals(roi)) {
+		    System.out.println("Could not find downstream ROI of " + roi);
+		    return;
+		}
+
+		if (roi.getEnd() >= p.getStart()) // nothing to do.
+		    return;
+
+		RegionOfInterest attached = new RegionOfInterest(roi.getChr(), roi.getStart(), p.getStart(),
+			roi.getDescription());
+		IGV.getInstance().getSession().addROI(attached, false, true);
+		ArrayList<RegionOfInterest> todel = new ArrayList<RegionOfInterest>();
+		todel.add(roi);
+		IGV.getInstance().getSession().removeROI(todel);
+
+		if (RegionNavigatorDialog.activeInstance != null)
+		    RegionNavigatorDialog.activeInstance.synchRegions();
+		IGV.getInstance().getSession().getRegionsOfInterestObservable().setChangedAndNotify();
+		IGV.getInstance().revalidateTrackPanels();
+	    }
+	});
+	popupMenu.add(item);
+
+	popupMenu.addSeparator();
 
 	item = new JMenuItem("Add X bp upstream");
 	item.addActionListener(new ActionListener() {
@@ -362,7 +476,6 @@ public class RegionOfInterestPanel extends JPanel {
 
 	popupMenu.addSeparator();
 
-	
 	item = new JMenuItem("Edit name...");
 	item.addActionListener(new ActionListener() {
 
@@ -405,7 +518,7 @@ public class RegionOfInterestPanel extends JPanel {
 	popupMenu.add(item);
 
 	popupMenu.addSeparator();
-	
+
 	item = new JMenuItem("Copy sequence");
 	item.addActionListener(new ActionListener() {
 

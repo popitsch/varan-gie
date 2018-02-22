@@ -41,6 +41,7 @@ import java.io.InputStreamReader;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.zip.GZIPInputStream;
@@ -67,7 +68,10 @@ import org.broad.igv.feature.genome.GenomeManager;
 import org.broad.igv.ui.IGV;
 
 import at.ccri.varan.GIE;
+import at.ccri.varan.GIEDatasetVersionLayer;
+import at.ccri.varan.ui.ROILink.TYPE;
 import at.ccri.varan.util.CanonicalChromsomeComparator;
+import at.ccri.varan.util.IntervalTools;
 import at.ccri.varan.util.SpringUtilities;
 
 /**
@@ -143,7 +147,7 @@ public class GIEAddIntervalDialog extends JDialog implements Observer, IGVEventO
 
 	// type
 	JLabel l = new JLabel(
-		"Enter one interval per line. Format: \"chr1:1-100 \\t label\" or \"chr \\t 1 \\t 100 \\t label\"");
+		"Enter one interval per line. Format: \"chr1:1-100 \\t label\" or \"chr \\t 1 \\t 100 \\t label\" or \"chr1 \\t 1 \\t 100 \\t chr2 \\t 1 \\t 100 \\t label\" ");
 	formPanel.add(l);
 
 	// descr
@@ -177,13 +181,13 @@ public class GIEAddIntervalDialog extends JDialog implements Observer, IGVEventO
 		    BufferedReader reader = null;
 		    StringBuffer sb = new StringBuffer();
 		    try {
-			
+
 			if (f.getName().endsWith(".gz"))
 			    reader = new BufferedReader(
 				    new InputStreamReader(new GZIPInputStream(new FileInputStream(f))));
 			else
 			    reader = new BufferedReader(new InputStreamReader(new FileInputStream(f)));
-			
+
 			String nextLine;
 
 			int c = 0;
@@ -232,6 +236,7 @@ public class GIEAddIntervalDialog extends JDialog implements Observer, IGVEventO
 		    int c = 0;
 		    Genome g = GenomeManager.getInstance().getCurrentGenome();
 		    List<RegionOfInterest> rois = new ArrayList<>();
+		    List<ROILink> links = new ArrayList<>();
 		    String[] tmp = textArea.getText().split("\n", -1);
 		    for (int ln = 0; ln < tmp.length; ln++) {
 			if (tmp[ln].trim().equals(""))
@@ -239,7 +244,7 @@ public class GIEAddIntervalDialog extends JDialog implements Observer, IGVEventO
 			if (tmp[ln].trim().startsWith("#"))
 			    continue;
 			String[] tabtest = tmp[ln].split("\t", -1);
-			if (tabtest.length < 2) {
+			if (tabtest.length <= 2) {
 			    // FORMAT: chr:start-end [\t label]
 			    String[] s1 = tmp[ln].split(":", -1);
 			    if (s1.length < 2)
@@ -255,6 +260,9 @@ public class GIEAddIntervalDialog extends JDialog implements Observer, IGVEventO
 				String chr = s1[0];
 				if (g != null)
 				    chr = g.getCanonicalChrName(chr);
+				if (chr.contains(":"))
+				    throw new ParseException("Parse error for format 'chr \t start\t end [\t label]'",
+					    1);
 
 				Integer start = CanonicalChromsomeComparator.parseCoordinate(chr, null, s2[0]);
 				Integer end = CanonicalChromsomeComparator.parseCoordinate(chr, null, s3[0]);
@@ -266,14 +274,17 @@ public class GIEAddIntervalDialog extends JDialog implements Observer, IGVEventO
 			    } catch (Exception ex1) {
 				throw new ParseException(ex1.getMessage(), ln);
 			    }
-			} else {
+			} else if (tabtest.length == 3 || tabtest.length == 4) {
 			    // FORMAT: chr \t start\t end [\t label]
 			    try {
 				c++;
 				String chr = tabtest[0];
+				if (chr.contains(":"))
+				    throw new ParseException("Parse error for format 'chr \t start\t end [\t label]'",
+					    1);
 				if (g != null)
 				    chr = g.getCanonicalChrName(chr);
-				
+
 				Integer start = CanonicalChromsomeComparator.parseCoordinate(chr, null, tabtest[1]);
 				Integer end = CanonicalChromsomeComparator.parseCoordinate(chr, null, tabtest[2]);
 
@@ -285,10 +296,102 @@ public class GIEAddIntervalDialog extends JDialog implements Observer, IGVEventO
 			    } catch (Exception ex1) {
 				throw new ParseException(ex1.getMessage(), ln);
 			    }
-			}
+
+			} else if (tabtest.length == 6 || tabtest.length == 7) {
+			    // FORMAT: chr1 \t start1 \t end1 \t chr2 \t start2 \t end2 [\t label]
+			    try {
+				c++;
+				String chr1 = tabtest[0];
+				String chr2 = tabtest[3];
+				if (chr1.contains(":") || chr2.contains(":"))
+				    throw new ParseException(
+					    "Parse error for format 'chr1 \t start1 \t end1 \t chr2 \t start2 \t end2 [\t label]'",
+					    1);
+				if (g != null) {
+				    chr1 = g.getCanonicalChrName(chr1);
+				    chr2 = g.getCanonicalChrName(chr2);
+				}
+
+				Integer start1 = CanonicalChromsomeComparator.parseCoordinate(chr1, null, tabtest[1]);
+				Integer end1 = CanonicalChromsomeComparator.parseCoordinate(chr1, null, tabtest[2]);
+				Integer start2 = CanonicalChromsomeComparator.parseCoordinate(chr2, null, tabtest[4]);
+				Integer end2 = CanonicalChromsomeComparator.parseCoordinate(chr2, null, tabtest[5]);
+				String description = "imported" + c;
+				if (tabtest.length == 7)
+				    description = tabtest[6];
+				RegionOfInterest r1 = new RegionOfInterest(chr1, start1, end1, description);
+				RegionOfInterest r2 = new RegionOfInterest(chr2, start2, end2, description);
+				rois.add(r1);
+				rois.add(r2);
+				ROILink rl = new ROILink(r1, r2, TYPE.FUSION);
+				links.add(rl);
+			    } catch (Exception ex1) {
+				throw new ParseException(ex1.getMessage(), ln);
+			    }
+			} else
+			    throw new ParseException("Unknown format", 0);
 		    }
 		    log.info("Importing " + rois.size() + " intervals");
-		    IGV.getInstance().addROI(rois);
+
+		    // are the intervals overlapping?
+		    // List<RegionOfInterest> allROI = (List<RegionOfInterest>) IGV.getInstance().getSession().getAllRegionsOfInterest();
+		    List<RegionOfInterest> allROI = new ArrayList<>();
+		    allROI.addAll(
+			    GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer().getRegions());
+		    boolean overlapsCurrent = (IntervalTools.isOverlappingROI(allROI, rois));
+		    List<List<RegionOfInterest>> layersToImport = IntervalTools.splitOverlapping(rois);
+		    boolean isOverlapping = layersToImport.size() > 1;
+
+		    if (overlapsCurrent || isOverlapping) {
+			int reply = JOptionPane.showConfirmDialog(null,
+				"<html><body>The imported " + rois.size()
+					+ " intervals overlap with the existing intervals "
+					+ "in the current layer or among each other. <br/>Shall VARAN-GIE import the intervals "
+					+ "into new layers of non-overlapping intervals (YES) <br/> "
+					+ "or merge overlapping intervals into the currently selected layer (NO)?",
+				"Overlapping Intervals", JOptionPane.YES_NO_OPTION);
+			if (reply == JOptionPane.YES_OPTION) {
+
+			    try {
+				String prefix = "importedLayer";
+				int idx = 1;
+				Map<String, GIEDatasetVersionLayer> layers = GIE.getInstance().getActiveDataset()
+					.getCurrentVersion().getLayers();
+				for (String ln : layers.keySet()) {
+				    if (ln.startsWith(prefix)) {
+					idx = Math.max(idx, Integer.parseInt(ln.substring(prefix.length())) + 1);
+				    }
+				}
+				for (List<RegionOfInterest> rois2import : layersToImport) {
+				    String lname = prefix + idx;
+				    idx++;
+				    GIE.getInstance().getActiveDataset().getCurrentVersion().addLayer(lname);
+				    // ensure that new table is added to IGV session
+				    GIEDatasetVersionLayer layer = GIE.getInstance().getActiveDataset()
+					    .getCurrentVersion().getActiveLayer();
+				    layer.addRegions(rois2import);
+				    // add links
+				    for (ROILink rl : links)
+					GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer()
+						.addLink(rl);
+				    layer.updateAndSave();
+				}
+
+				GIE.getInstance().reloadActiveDataset();
+			    } catch (Exception ex) {
+				JOptionPane.showMessageDialog(IGV.getMainFrame(), "Importing Error " + ex.getMessage(),
+					"Error", JOptionPane.ERROR_MESSAGE);
+			    }
+			} else if (reply == JOptionPane.NO_OPTION) {
+			    IGV.getInstance().addROI(rois);
+			}
+
+		    } else {
+			IGV.getInstance().addROI(rois);
+			// add links
+			for (ROILink rl : links)
+			    GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer().addLink(rl);
+		    }
 		    JOptionPane.showMessageDialog(IGV.getMainFrame(), "Imported " + c + " intervals");
 		    dispose();
 		} catch (ParseException ex) {

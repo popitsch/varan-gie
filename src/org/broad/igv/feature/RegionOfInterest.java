@@ -132,10 +132,13 @@ public class RegionOfInterest implements Comparable<RegionOfInterest> {
 	if (activeLayer != null && activeLayer.getLinkedROIs().contains(this)) {
 	    sb.append("<hr/>");
 	    for (ROILink rl : activeLayer.getLinks()) {
+		if ( rl.getSource().equals(this) && rl.getTarget().equals(this)) {
+		    sb.append("<font color=\"blue\">Linked to self</font><br/>");
+		} else
 		if (rl.getSource().equals(this))
-		    sb.append("<font color=\"blue\">Linked to region " + rl.getTarget() + "</font>");
+		    sb.append("<font color=\"blue\">Linked to region " + rl.getTarget() + "</font><br/>");
 		if (rl.getTarget().equals(this))
-		    sb.append("<font color=\"blue\">Linked to region " + rl.getSource() + "</font>");
+		    sb.append("<font color=\"blue\">Linked to region " + rl.getSource() + "</font><br/>");
 	    }
 	}
 
@@ -223,6 +226,18 @@ public class RegionOfInterest implements Comparable<RegionOfInterest> {
 	if (getStart() > o.getStart())
 	    return 1;
 	return 0;
+    }
+    
+    /**
+     * @param o
+     * @return true if this ROI overlaps with the passed one.
+     */
+    public boolean overlaps(RegionOfInterest o) {
+	if (o == null)
+	    return false;
+	if (!getChr().equals(o.getChr()))
+	    return false;
+	return Math.max(getStart(), o.getStart()) <= Math.min(getEnd(), o.getEnd());
     }
 
     private static boolean isInterpunkt(Character c) {

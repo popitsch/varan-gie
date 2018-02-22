@@ -355,7 +355,7 @@ public class GIELoadTSVDialog extends JDialog {
 		    col2fieldMap.put(tmp[1], tmp[0]);
 		    customFields[i] = tmp[1];
 		}
-		System.out.println("Mapping " + col2fieldMap);
+//		System.out.println("Mapping " + col2fieldMap);
 
 		String category = textField0.getText();
 		String dsname = textField1.getText();
@@ -422,7 +422,7 @@ public class GIELoadTSVDialog extends JDialog {
 		    GIEDatasetVersionLayer layer = GIE.getInstance().getDatasetMainLayer(dsname);
 		    layer.addRegions(regions);
 		    layer.save();
-		    System.out.println(layer + " " + layer.getRegions());
+//		    System.out.println(layer + " " + layer.getRegions());
 		    // try {
 		    // System.in.read();
 		    // } catch (IOException e1) {
@@ -442,7 +442,7 @@ public class GIELoadTSVDialog extends JDialog {
 	button2.addActionListener(new ActionListener() {
 	    @Override
 	    public void actionPerformed(ActionEvent e) {
-		System.out.println("Cancel");
+//		System.out.println("Cancel");
 		// saveCoords();
 		dispose();
 	    }

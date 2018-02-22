@@ -73,12 +73,12 @@ public class ROILink {
     }
 
     
-    public static void main(String[] args) {
-	Set<ROILink> s = new HashSet<>();
-	s.add(new ROILink(new RegionOfInterest("1", 100, 1000, "A"), new RegionOfInterest("2", 100, 1000, "B"), TYPE.FUSION));
-	s.add(new ROILink(new RegionOfInterest("1", 100, 1000, "A"), new RegionOfInterest("2", 100, 1000, "B"), TYPE.FUSION));
-	System.out.println(s);
-    }
-    
+    // public static void main(String[] args) {
+    // Set<ROILink> s = new HashSet<>();
+    // s.add(new ROILink(new RegionOfInterest("1", 100, 1000, "A"), new RegionOfInterest("2", 100, 1000, "B"), TYPE.FUSION));
+    // s.add(new ROILink(new RegionOfInterest("1", 100, 1000, "A"), new RegionOfInterest("2", 100, 1000, "B"), TYPE.FUSION));
+    // System.out.println(s);
+    // }
+    //
     
 }

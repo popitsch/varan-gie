@@ -24,8 +24,6 @@ public class GIEAttributeFilter {
 
     public static String[] OPERATOR_STR = { "=", "!=", ">", "<", ">=", "<=", "&&", "^^" };
 
-    
-
     public static String op2str(OPERATOR op) {
 	switch (op) {
 	case EQ:
@@ -50,7 +48,7 @@ public class GIEAttributeFilter {
 
     OPERATOR operator;
     String valueSer;
-    String colName;
+    String key;
     boolean isNumeric;
     boolean isPrefix;
     boolean isContains;
@@ -58,7 +56,7 @@ public class GIEAttributeFilter {
     public GIEAttributeFilter(String key, String valueSer, OPERATOR op) throws IOException {
 	if (!GIEDataDialog.getInstance().colNameMap.containsKey(key))
 	    throw new IOException("Cannot create filter for unknown attribute " + key);
-	this.colName = key;
+	this.key = key;
 	this.operator = op;
 	this.valueSer = valueSer;
 	this.isNumeric = NumberUtils.isNumber(valueSer);
@@ -69,7 +67,7 @@ public class GIEAttributeFilter {
     @Override
     public String toString() {
 	StringBuilder sb = new StringBuilder();
-	sb.append(colName);
+	sb.append(key);
 	sb.append(op2str(operator));
 	sb.append(valueSer);
 	return sb.toString();
@@ -80,28 +78,28 @@ public class GIEAttributeFilter {
 	    return null;
 	if (s.toLowerCase().contains("&&")) {
 	    String[] tmp = s.split("&&");
-	    return new GIEAttributeFilter(tmp[0], tmp[1], OPERATOR.FLAGSET);
+	    return new GIEAttributeFilter(tmp[0].trim(), tmp[1].trim(), OPERATOR.FLAGSET);
 	} else if (s.toLowerCase().contains("^^")) {
 	    String[] tmp = s.split("\\^\\^");
-	    return new GIEAttributeFilter(tmp[0], tmp[1], OPERATOR.FLAGUNSET);
+	    return new GIEAttributeFilter(tmp[0].trim(), tmp[1].trim(), OPERATOR.FLAGUNSET);
 	} else if (s.contains("<=")) {
 	    String[] tmp = s.split("<=");
-	    return new GIEAttributeFilter(tmp[0], tmp[1], OPERATOR.LTE);
+	    return new GIEAttributeFilter(tmp[0].trim(), tmp[1].trim(), OPERATOR.LTE);
 	} else if (s.contains(">=")) {
 	    String[] tmp = s.split(">=");
-	    return new GIEAttributeFilter(tmp[0], tmp[1], OPERATOR.GTE);
+	    return new GIEAttributeFilter(tmp[0].trim(), tmp[1].trim(), OPERATOR.GTE);
 	} else if (s.contains("!=")) {
 	    String[] tmp = s.split("!=");
-	    return new GIEAttributeFilter(tmp[0], tmp[1], OPERATOR.NEQ);
+	    return new GIEAttributeFilter(tmp[0].trim(), tmp[1].trim(), OPERATOR.NEQ);
 	} else if (s.contains("=")) {
 	    String[] tmp = s.split("=");
-	    return new GIEAttributeFilter(tmp[0], tmp[1], OPERATOR.EQ);
+	    return new GIEAttributeFilter(tmp[0].trim(), tmp[1].trim(), OPERATOR.EQ);
 	} else if (s.contains("<")) {
 	    String[] tmp = s.split("<");
-	    return new GIEAttributeFilter(tmp[0], tmp[1], OPERATOR.LT);
+	    return new GIEAttributeFilter(tmp[0].trim(), tmp[1].trim(), OPERATOR.LT);
 	} else if (s.contains(">")) {
 	    String[] tmp = s.split(">");
-	    return new GIEAttributeFilter(tmp[0], tmp[1], OPERATOR.GT);
+	    return new GIEAttributeFilter(tmp[0].trim(), tmp[1].trim(), OPERATOR.GT);
 	} else
 	    return null;
     }
@@ -109,12 +107,11 @@ public class GIEAttributeFilter {
     public boolean filter(javax.swing.RowFilter.Entry<? extends TableModel, ? extends Object> entry) {
 
 	// If the current dataset does not support the attribute: ignore
-	if (GIEDataDialog.getInstance() == null
-		|| !GIEDataDialog.getInstance().colNameMap.containsKey(colName))
+	if (GIEDataDialog.getInstance() == null || !GIEDataDialog.getInstance().colNameMap.containsKey(key))
 	    return true;
 
 	// value of the interval
-	int colidx = GIEDataDialog.getInstance().colName2Index(colName);
+	int colidx = GIEDataDialog.getInstance().colName2Index(key);
 
 	Object val = entry.getValue(colidx);
 	if (colidx == GIEDataDialog.COLIDX_Width) {
@@ -212,17 +209,17 @@ public class GIEAttributeFilter {
 		return ((String) val).compareTo(valueSer) <= 0;
 	    case EQ:
 		String v = ((String) val);
-		if ( isContains )
-		    return v.contains( valueSer.substring(1, valueSer.length()-1));
-		if ( isPrefix )
-		    return v.startsWith(valueSer.substring(0, valueSer.length()-1));
+		if (isContains)
+		    return v.contains(valueSer.substring(1, valueSer.length() - 1));
+		if (isPrefix)
+		    return v.startsWith(valueSer.substring(0, valueSer.length() - 1));
 		return v.equals(valueSer);
 	    case NEQ:
 		v = ((String) val);
-		if ( isContains )
-		    return !v.contains( valueSer.substring(1, valueSer.length()-1));
-		if ( isPrefix )
-		    return ! v.startsWith(valueSer.substring(0, valueSer.length()-1));
+		if (isContains)
+		    return !v.contains(valueSer.substring(1, valueSer.length() - 1));
+		if (isPrefix)
+		    return !v.startsWith(valueSer.substring(0, valueSer.length() - 1));
 		return !((String) val).equals(valueSer);
 	    case FLAGSET: // TODO undefined
 	    case FLAGUNSET:
@@ -237,6 +234,62 @@ public class GIEAttributeFilter {
 		return false;
 	    }
 	return true;
+    }
+
+    public static String[] getOPERATOR_STR() {
+	return OPERATOR_STR;
+    }
+
+    public static void setOPERATOR_STR(String[] oPERATOR_STR) {
+	OPERATOR_STR = oPERATOR_STR;
+    }
+
+    public OPERATOR getOperator() {
+	return operator;
+    }
+
+    public void setOperator(OPERATOR operator) {
+	this.operator = operator;
+    }
+
+    public String getValueSer() {
+	return valueSer;
+    }
+
+    public void setValueSer(String valueSer) {
+	this.valueSer = valueSer;
+    }
+
+    public String getKey() {
+	return key;
+    }
+
+    public void setKey(String key) {
+	this.key = key;
+    }
+
+    public boolean isNumeric() {
+	return isNumeric;
+    }
+
+    public void setNumeric(boolean isNumeric) {
+	this.isNumeric = isNumeric;
+    }
+
+    public boolean isPrefix() {
+	return isPrefix;
+    }
+
+    public void setPrefix(boolean isPrefix) {
+	this.isPrefix = isPrefix;
+    }
+
+    public boolean isContains() {
+	return isContains;
+    }
+
+    public void setContains(boolean isContains) {
+	this.isContains = isContains;
     }
 
 }
