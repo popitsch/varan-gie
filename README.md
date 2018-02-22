@@ -14,6 +14,7 @@ By this, VARAN supports an integrative approach to viewing and annotating large 
 - Manual curation of genomic annotations, e.g., gene lists, CNV or SV calls, novel transcripts
 - Collaborative merging and curation of multiple BED files
 - De-novo authoring of multi-layered interval sets
+and many more...
 
 ## Installation
 
@@ -27,4 +28,4 @@ Please refer to our [WIKI pages](https://github.com/popitsch/varan-gie/wiki/) fo
 
 ## About <a name="about"></a>
 
-*) VARAN-GIE (VARiant ANnotation Genomic Interval Editor, aka "VARAN") was developed at the [Children's Cancer Research Institute (CCRI)](http://science.ccri.at/)
+*) VARAN-GIE (VARiant ANnotation Genomic Interval Editor, aka "VARAN") is being developed at the [Children's Cancer Research Institute (CCRI)](http://science.ccri.at/)
