@@ -7,7 +7,7 @@ It *extends* IGV by **adding functionality to create, edit and annotate sets of 
 By this, VARAN supports an integrative approach to viewing and annotating large genomic data sets. 
 
 
-![VARAN core GUI:](https://raw.githubusercontent.com/popitsch/varan-gie/master/gieweb/screenshot2.png "VARAN core GUI")
+![VARAN core GUI:](https://raw.githubusercontent.com/popitsch/varan-gie/master/gieweb/screenshot1.png "VARAN core GUI")
 
 ## Application Scenarios
 
