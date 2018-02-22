@@ -2,9 +2,12 @@
 	
 ## Introduction
 	
-VARAN (*) is a *branch* of [Broad's popular Integrative Genomics Viewer (IGV)](http://software.broadinstitute.org/software/igv/).
+VARAN [(*)](#about) is a *branch* of [Broad's popular Integrative Genomics Viewer (IGV)](http://software.broadinstitute.org/software/igv/).
 It *extends* IGV by **adding functionality to create, edit and annotate sets of genomic intervals**.
 By this, VARAN supports an integrative approach to viewing and annotating large genomic data sets. 
+
+
+![VARAN core GUI:](https://raw.githubusercontent.com/popitsch/varan-gie/master/gieweb/screenshot2.png "VARAN core GUI")
 
 ## Application Scenarios
 
@@ -21,10 +24,7 @@ By this, VARAN supports an integrative approach to viewing and annotating large 
 
 Please refer to our [WIKI pages](https://github.com/popitsch/varan-gie/wiki/) for detailed documentation of VARAN.
 
-## Quick Start
 
-![VARAN core GUI:](https://raw.githubusercontent.com/popitsch/varan-gie/master/gieweb/screenshot2.png "VARAN core GUI")
-
-## About 
+## About <a name="about"></a>
 
 *) VARAN-GIE (VARiant ANnotation Genomic Interval Editor, aka "VARAN") was developed at the [Children's Cancer Research Institute (CCRI)](http://science.ccri.at/)
