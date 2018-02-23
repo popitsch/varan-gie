@@ -27,7 +27,7 @@ Please refer to our [WIKI pages](https://github.com/popitsch/varan-gie/wiki/) fo
 
 You may also click here to access a short youtube introduction video. Please note that this video was created from an earlier (alpha) 
 release of VARAN-GIE and does not cover all functionality / differs slightly in the GUI from the current beta version. 
-[![Introduction video](https://raw.githubusercontent.com/popitsch/varan-gie/master/gieweb/sintro-video-screenshot.png)](https://www.youtube.com/watch?v=aBHKEviy9g4&list=PLvayEaZ7ZDgwyUiv5h0ygUTdGVGj_U061)
+[![Introduction video](https://raw.githubusercontent.com/popitsch/varan-gie/master/gieweb/intro-video-screenshot.png)](https://www.youtube.com/watch?v=aBHKEviy9g4&list=PLvayEaZ7ZDgwyUiv5h0ygUTdGVGj_U061)
 
 
 ## About <a name="about"></a>
