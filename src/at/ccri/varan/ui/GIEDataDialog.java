@@ -634,22 +634,26 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	int[] selectedRows = getSelectedRows();
 	if (selectedRows.length > 0) {
 	    StringBuilder sb = new StringBuilder();
-	    for (int rowIndex : selectedRows) {
-		Enumeration<TableColumn> cols = table.getColumnModel().getColumns();
-		while (cols.hasMoreElements()) {
-		    TableColumn tc = cols.nextElement();
-		    switch (tc.getModelIndex()) {
-		    case COLIDX_View:
-		    case COLIDX_Del:
-			break;
-		    default:
-			sb.append(table.getModel().getValueAt(rowIndex, tc.getModelIndex()) + "\t");
-			break;
-		    }
-		}
-		sb.append("\n");
+//	    for (int rowIndex : selectedRows) {
+//		Enumeration<TableColumn> cols = table.getColumnModel().getColumns();
+//		while (cols.hasMoreElements()) {
+//		    TableColumn tc = cols.nextElement();
+//		    
+//		    switch (tc.getModelIndex()) {
+//		    case COLIDX_View:
+//		    case COLIDX_Del:
+//			break;
+//		    default:
+//			sb.append(table.getModel().getValueAt(rowIndex, tc.getModelIndex()) + "\t");
+//			break;
+//		    }
+//		}
+//		sb.append("\n");
+//	    }
+	    for ( int i : selectedRows ) {
+		sb.append(getSelectedRegion(i).toFullString()+"\n");
 	    }
-
+	    
 	    // List<RegionOfInterest> selectedRegions = getSelectedRegions(selectedRows);
 	    // StringBuilder sb = new StringBuilder();
 	    // for (RegionOfInterest r : selectedRegions)

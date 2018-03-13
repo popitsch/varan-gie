@@ -434,8 +434,8 @@ public class RegionOfInterest implements Comparable<RegionOfInterest> {
 
     public String toFullString() {
 	StringBuilder sb = new StringBuilder();
-	sb.append(chr + "\t" + start + "\t" + end + "\twidth-will-be-calculated\t" + getDescription() + "\t" + getScore() + "\t" + getStrand()
-		+ "\t" + getColor());
+	sb.append(chr + "\t" + start + "\t" + end + "\t" + getDescription() + "\t" + (getScore() == null ? 0d : getScore()) + "\t" + (getStrand() == null ? "0" : getStrand())
+		+ "\t" +(getColor() == null ? "-" : getColor()));
 	for (String a : getAnnotations().keySet())
 	    sb.append("\t" + a + "=" + getAnnotation(a));
 	return sb.toString();

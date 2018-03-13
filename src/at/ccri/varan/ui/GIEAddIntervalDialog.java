@@ -283,9 +283,9 @@ public class GIEAddIntervalDialog extends JDialog implements Observer, IGVEventO
 				format = IMPORT_FORMAT.SIMPLE1;
 			    else if (tabtest.length == 3 || tabtest.length == 4)
 				format = IMPORT_FORMAT.SIMPLE2;
-			    else if (tabtest.length == 6 || tabtest.length == 7 )
+			    else if (tabtest.length == 6 )
 				format = IMPORT_FORMAT.BEDPE;
-			    else if (tabtest.length >= 8) {
+			    else if (tabtest.length >= 7) {
 				// ask user
 				int reply = JOptionPane.showConfirmDialog(null,
 					"Ambiguous data format. Import as BEDPE (YES) or FULL (NO)?",
@@ -396,29 +396,29 @@ public class GIEAddIntervalDialog extends JDialog implements Observer, IGVEventO
 				throw new ParseException(ex1.getMessage(), ln);
 			    }
 			} else if (format == IMPORT_FORMAT.FULL) {
-			    // FULL FORMAT: chr1 \t start \t end \t width(will be calculated) \t name \t score \t strand \t color [\t custom1=val1 \t custom2=val2 \t ...]
+			    // FULL FORMAT: chr1 \t start \t end \t name \t score \t strand \t color [\t custom1=val1 \t custom2=val2 \t ...]
 			    try {
 				c++;
 				String chr = tabtest[0];
 				if (chr.contains(":"))
 				    throw new ParseException(
-					    "Parse error for format 'chr1 \t start \t end \t width(will be calculated) \t name \t score \t strand \t color [\t custom1=val1 \t custom2=val2 \t ...'",
+					    "Parse error for format 'chr1 \t start \t end \t name \t score \t strand \t color [\t custom1=val1 \t custom2=val2 \t ...'",
 					    1);
 				if (g != null) {
 				    chr = g.getCanonicalChrName(chr);
 				}
 				Integer start = CanonicalChromsomeComparator.parseCoordinate(chr, null, tabtest[1]);
 				Integer end = CanonicalChromsomeComparator.parseCoordinate(chr, null, tabtest[2]);
-				String description = tabtest[4];
+				String description = tabtest[3];
 				RegionOfInterest r = new RegionOfInterest(chr, start, end, description);
 				try {
-				    Double score = Double.parseDouble(tabtest[5]);
+				    Double score = Double.parseDouble(tabtest[4]);
 				    r.setScore(score);
 				} catch (NumberFormatException ex) {
 				}
-				r.setStrand(tabtest[6]);
-				r.setColor(tabtest[7]);
-				for (int i = 8; i < tabtest.length; i++) {
+				r.setStrand(tabtest[5]);
+				r.setColor(tabtest[6]);
+				for (int i = 7; i < tabtest.length; i++) {
 				    String[] x = tabtest[i].split("=", -1);
 				    if (x.length == 2)
 					r.addAnnotation(x[0], x[1]);
