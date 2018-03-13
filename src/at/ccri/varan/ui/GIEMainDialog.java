@@ -85,6 +85,7 @@ import org.broad.igv.ui.IGV;
 import at.ccri.varan.GIE;
 import at.ccri.varan.GIEDataset;
 import at.ccri.varan.GIEDatasetVersion;
+import at.ccri.varan.GIEDatasetVersionLayer;
 
 /**
  * GIE main dialog
@@ -422,6 +423,7 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 		    // copy all layers from current version
 		    ver.copyLayersFrom(ad.getCurrentVersion());
 		    success = ad.addVersion(ver);
+		    
 		} catch (IOException e1) {
 		    e1.printStackTrace();
 		    success = false;
@@ -438,7 +440,10 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 
 		    // save active dataset to create .bed file
 		    ad.selectVersion(tag);
-		    ad.save();
+
+		    // save all layers to create .bed files
+		    for ( GIEDatasetVersionLayer l : ad.getCurrentVersion().getLayers().values())
+			l.save();
 
 		    // create new version
 		    GIE.getInstance().loadDataset(GIE.getInstance().getActiveDatasetName(), tag);
