@@ -132,10 +132,9 @@ public class RegionOfInterest implements Comparable<RegionOfInterest> {
 	if (activeLayer != null && activeLayer.getLinkedROIs().contains(this)) {
 	    sb.append("<hr/>");
 	    for (ROILink rl : activeLayer.getLinks()) {
-		if ( rl.getSource().equals(this) && rl.getTarget().equals(this)) {
+		if (rl.getSource().equals(this) && rl.getTarget().equals(this)) {
 		    sb.append("<font color=\"blue\">Linked to self</font><br/>");
-		} else
-		if (rl.getSource().equals(this))
+		} else if (rl.getSource().equals(this))
 		    sb.append("<font color=\"blue\">Linked to region " + rl.getTarget() + "</font><br/>");
 		if (rl.getTarget().equals(this))
 		    sb.append("<font color=\"blue\">Linked to region " + rl.getSource() + "</font><br/>");
@@ -227,7 +226,7 @@ public class RegionOfInterest implements Comparable<RegionOfInterest> {
 	    return 1;
 	return 0;
     }
-    
+
     /**
      * @param o
      * @return true if this ROI overlaps with the passed one.
@@ -237,7 +236,7 @@ public class RegionOfInterest implements Comparable<RegionOfInterest> {
 	    return false;
 	if (!getChr().equals(o.getChr()))
 	    return false;
-	return Math.max(getStart(), o.getStart()) <= Math.min(getEnd(), o.getEnd());
+	return Math.max(getStart(), o.getStart()) < Math.min(getEnd(), o.getEnd());
     }
 
     private static boolean isInterpunkt(Character c) {
@@ -431,6 +430,15 @@ public class RegionOfInterest implements Comparable<RegionOfInterest> {
     @Override
     public String toString() {
 	return chr + ":" + start + "-" + end;
+    }
+
+    public String toFullString() {
+	StringBuilder sb = new StringBuilder();
+	sb.append(chr + "\t" + start + "\t" + end + "\twidth-will-be-calculated\t" + getDescription() + "\t" + getScore() + "\t" + getStrand()
+		+ "\t" + getColor());
+	for (String a : getAnnotations().keySet())
+	    sb.append("\t" + a + "=" + getAnnotation(a));
+	return sb.toString();
     }
 
 }

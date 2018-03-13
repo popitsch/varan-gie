@@ -88,6 +88,10 @@ public class GIEAddIntervalDialog extends JDialog implements Observer, IGVEventO
 
     private static String lastText = "";
 
+    private static enum IMPORT_FORMAT {
+	SIMPLE1, SIMPLE2, BEDPE, FULL
+    };
+
     public GIEAddIntervalDialog(Frame owner) {
 	super(owner, "Add Intervals", true);
 	init();
@@ -167,8 +171,8 @@ public class GIEAddIntervalDialog extends JDialog implements Observer, IGVEventO
 	buttonPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 6, 6));
 	buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.LINE_AXIS));
 
-	// load from file button
-	JButton buttonLoad = new JButton("Load...");
+	// load from BED file button
+	JButton buttonLoad = new JButton("Load BED data...");
 	buttonLoad.addActionListener(new ActionListener() {
 	    @Override
 	    public void actionPerformed(ActionEvent e) {
@@ -227,6 +231,33 @@ public class GIEAddIntervalDialog extends JDialog implements Observer, IGVEventO
 	    }
 	});
 
+	// load from TSV file button
+	JButton buttonLoad2 = new JButton("Load TSV data...");
+	buttonLoad2.addActionListener(new ActionListener() {
+	    @Override
+	    public void actionPerformed(ActionEvent e) {
+		JFileChooser fc = new JFileChooser();
+		if (GIE.getInstance().getLastAccessedDirectories().get("GIEImportFromTSVDialog") != null)
+		    fc.setCurrentDirectory(
+			    GIE.getInstance().getLastAccessedDirectories().get("GIEImportFromTSVDialog"));
+		int result = fc.showOpenDialog(null);
+		if (result == JFileChooser.APPROVE_OPTION) {
+		    File fin = fc.getSelectedFile();
+		    GIEImportFromTSVDialog diag;
+		    try {
+			diag = new GIEImportFromTSVDialog(IGV.getMainFrame(), fin);
+			StringBuffer regions = diag.getIntervalString();
+			if (regions != null)
+			    textArea.setText(regions.toString());
+			GIE.getInstance().setLastAccessedDirectory("GIEImportFromTSVDialog", fin.getParentFile());
+		    } catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		    }
+		}
+	    }
+	});
+
 	// buttons
 	JButton buttonOk = new JButton("OK");
 	buttonOk.addActionListener(new ActionListener() {
@@ -238,14 +269,37 @@ public class GIEAddIntervalDialog extends JDialog implements Observer, IGVEventO
 		    List<RegionOfInterest> rois = new ArrayList<>();
 		    List<ROILink> links = new ArrayList<>();
 		    String[] tmp = textArea.getText().split("\n", -1);
+		    IMPORT_FORMAT format = null;
 		    for (int ln = 0; ln < tmp.length; ln++) {
 			if (tmp[ln].trim().equals(""))
 			    continue;
 			if (tmp[ln].trim().startsWith("#"))
 			    continue;
 			String[] tabtest = tmp[ln].split("\t", -1);
-			if (tabtest.length <= 2) {
-			    // FORMAT: chr:start-end [\t label]
+
+			// guess format from 2st entry (or ask if unclear)
+			if (format == null) {
+			    if (tabtest.length <= 2)
+				format = IMPORT_FORMAT.SIMPLE1;
+			    else if (tabtest.length == 3 || tabtest.length == 4)
+				format = IMPORT_FORMAT.SIMPLE2;
+			    else if (tabtest.length == 6 || tabtest.length == 7 )
+				format = IMPORT_FORMAT.BEDPE;
+			    else if (tabtest.length >= 8) {
+				// ask user
+				int reply = JOptionPane.showConfirmDialog(null,
+					"Ambiguous data format. Import as BEDPE (YES) or FULL (NO)?",
+					"Ambiguous data format", JOptionPane.YES_NO_OPTION);
+				if (reply == JOptionPane.YES_OPTION) {
+				    format = IMPORT_FORMAT.BEDPE;
+				} else
+				    format = IMPORT_FORMAT.FULL;
+			    } else
+				throw new ParseException("Unknown data format!", 0);
+			}
+
+			if (format == IMPORT_FORMAT.SIMPLE1) {
+			    // Simple1 FORMAT: chr:start-end [\t label]
 			    String[] s1 = tmp[ln].split(":", -1);
 			    if (s1.length < 2)
 				throw new ParseException("No chromosome separator found in '" + tmp[ln], ln);
@@ -274,8 +328,8 @@ public class GIEAddIntervalDialog extends JDialog implements Observer, IGVEventO
 			    } catch (Exception ex1) {
 				throw new ParseException(ex1.getMessage(), ln);
 			    }
-			} else if (tabtest.length == 3 || tabtest.length == 4) {
-			    // FORMAT: chr \t start\t end [\t label]
+			} else if (format == IMPORT_FORMAT.SIMPLE2) {
+			    // Simple2 FORMAT: chr \t start\t end [\t label]
 			    try {
 				c++;
 				String chr = tabtest[0];
@@ -297,15 +351,15 @@ public class GIEAddIntervalDialog extends JDialog implements Observer, IGVEventO
 				throw new ParseException(ex1.getMessage(), ln);
 			    }
 
-			} else if (tabtest.length == 6 || tabtest.length == 7) {
-			    // FORMAT: chr1 \t start1 \t end1 \t chr2 \t start2 \t end2 [\t label]
+			} else if (format == IMPORT_FORMAT.BEDPE) {
+			    // BEDPE FORMAT: chr1 \t start1 \t end1 \t chr2 \t start2 \t end2 [\t label]
 			    try {
 				c++;
 				String chr1 = tabtest[0];
 				String chr2 = tabtest[3];
 				if (chr1.contains(":") || chr2.contains(":"))
 				    throw new ParseException(
-					    "Parse error for format 'chr1 \t start1 \t end1 \t chr2 \t start2 \t end2 [\t label]'",
+					    "Parse error for format 'chr1 \t start1 \t end1 \t chr2 \t start2 \t end2 [\t label \t score \t strand1 \t strand2]'",
 					    1);
 				if (g != null) {
 				    chr1 = g.getCanonicalChrName(chr1);
@@ -317,14 +371,59 @@ public class GIEAddIntervalDialog extends JDialog implements Observer, IGVEventO
 				Integer start2 = CanonicalChromsomeComparator.parseCoordinate(chr2, null, tabtest[4]);
 				Integer end2 = CanonicalChromsomeComparator.parseCoordinate(chr2, null, tabtest[5]);
 				String description = "imported" + c;
-				if (tabtest.length == 7)
+				if (tabtest.length >= 7)
 				    description = tabtest[6];
 				RegionOfInterest r1 = new RegionOfInterest(chr1, start1, end1, description);
 				RegionOfInterest r2 = new RegionOfInterest(chr2, start2, end2, description);
+				if (tabtest.length >= 8) {
+				    try {
+					r1.setScore(Double.parseDouble(tabtest[7]));
+					r2.setScore(Double.parseDouble(tabtest[7]));
+				    } catch (NumberFormatException ex) {
+				    }
+				}
+				if (tabtest.length >= 9) {
+				    r1.setStrand(tabtest[8]);
+				}
+				if (tabtest.length >= 10) {
+				    r2.setStrand(tabtest[9]);
+				}
 				rois.add(r1);
 				rois.add(r2);
 				ROILink rl = new ROILink(r1, r2, TYPE.FUSION);
 				links.add(rl);
+			    } catch (Exception ex1) {
+				throw new ParseException(ex1.getMessage(), ln);
+			    }
+			} else if (format == IMPORT_FORMAT.FULL) {
+			    // FULL FORMAT: chr1 \t start \t end \t width(will be calculated) \t name \t score \t strand \t color [\t custom1=val1 \t custom2=val2 \t ...]
+			    try {
+				c++;
+				String chr = tabtest[0];
+				if (chr.contains(":"))
+				    throw new ParseException(
+					    "Parse error for format 'chr1 \t start \t end \t width(will be calculated) \t name \t score \t strand \t color [\t custom1=val1 \t custom2=val2 \t ...'",
+					    1);
+				if (g != null) {
+				    chr = g.getCanonicalChrName(chr);
+				}
+				Integer start = CanonicalChromsomeComparator.parseCoordinate(chr, null, tabtest[1]);
+				Integer end = CanonicalChromsomeComparator.parseCoordinate(chr, null, tabtest[2]);
+				String description = tabtest[4];
+				RegionOfInterest r = new RegionOfInterest(chr, start, end, description);
+				try {
+				    Double score = Double.parseDouble(tabtest[5]);
+				    r.setScore(score);
+				} catch (NumberFormatException ex) {
+				}
+				r.setStrand(tabtest[6]);
+				r.setColor(tabtest[7]);
+				for (int i = 8; i < tabtest.length; i++) {
+				    String[] x = tabtest[i].split("=", -1);
+				    if (x.length == 2)
+					r.addAnnotation(x[0], x[1]);
+				}
+				rois.add(r);
 			    } catch (Exception ex1) {
 				throw new ParseException(ex1.getMessage(), ln);
 			    }
@@ -399,6 +498,7 @@ public class GIEAddIntervalDialog extends JDialog implements Observer, IGVEventO
 			    JOptionPane.ERROR_MESSAGE);
 		}
 	    }
+
 	});
 	JButton buttonCancel = new JButton("Cancel");
 	buttonCancel.addActionListener(new ActionListener() {
@@ -412,6 +512,8 @@ public class GIEAddIntervalDialog extends JDialog implements Observer, IGVEventO
 
 	buttonPanel.add(Box.createHorizontalStrut(5));
 	buttonPanel.add(buttonLoad);
+	buttonPanel.add(Box.createHorizontalStrut(5));
+	buttonPanel.add(buttonLoad2);
 	buttonPanel.add(Box.createHorizontalGlue());
 	buttonPanel.add(buttonOk);
 	buttonPanel.add(Box.createHorizontalStrut(10));
