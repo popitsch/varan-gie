@@ -100,7 +100,7 @@ public class GIE {
     /**
      * GIE Version
      */
-    public static final String VERSION = "0.2.8";
+    public static final String VERSION = "0.2.9";
 
     public static final String AUTHORS = "niko.popitsch@ccri.at";
 
