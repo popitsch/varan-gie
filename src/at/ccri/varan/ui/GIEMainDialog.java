@@ -45,6 +45,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
@@ -190,6 +191,7 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 
 	java.awt.EventQueue.invokeLater(new Runnable() {
 	    public void run() {
+
 		DefaultTableModel model = (DefaultTableModel) table.getModel();
 		GIE gie = GIE.getInstance();
 
@@ -275,6 +277,18 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 		Math.max(0, (int) getLocationOnScreen().getY()), getWidth(), getHeight() };
     }
 
+    public void saveCoords() {
+	Integer[] coords = getCoords();
+	if (coords != null) {
+	    // check compatibility with actual screen size
+	    coords[0] = Math.min(coords[0], GIE.SCREEN_WIDTH - coords[2]);
+	    coords[1] = Math.min(coords[1], GIE.SCREEN_HEIGHT - coords[3]);
+	    setLocation(coords[0], coords[1]);
+	    setPreferredSize(new Dimension(coords[2], coords[3]));
+	    GIE.getInstance().getWindowCoordinates().put("GIEMainDialog", coords);
+	}
+    }
+
     /**
      * Initialize the dialog.
      */
@@ -289,9 +303,7 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 	addWindowListener(new WindowAdapter() {
 	    @Override
 	    public void windowClosing(WindowEvent e) {
-		Integer[] coords = getCoords();
-		if (coords != null)
-		    GIE.getInstance().getWindowCoordinates().put("GIEMainDialog", getCoords());
+		saveCoords();
 	    }
 	});
 	Integer[] coords = GIE.getInstance().getWindowCoordinates().get("GIEMainDialog");
@@ -305,6 +317,7 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 	    setLocation(coords[0], coords[1]);
 	    setPreferredSize(new Dimension(coords[2], coords[3]));
 	}
+	pack();
 	// +++++++++++++++++++++++++++++++++++++++++++++++
 
 	/**
@@ -423,7 +436,7 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 		    // copy all layers from current version
 		    ver.copyLayersFrom(ad.getCurrentVersion());
 		    success = ad.addVersion(ver);
-		    
+
 		} catch (IOException e1) {
 		    e1.printStackTrace();
 		    success = false;
@@ -442,7 +455,7 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 		    ad.selectVersion(tag);
 
 		    // save all layers to create .bed files
-		    for ( GIEDatasetVersionLayer l : ad.getCurrentVersion().getLayers().values())
+		    for (GIEDatasetVersionLayer l : ad.getCurrentVersion().getLayers().values())
 			l.save();
 
 		    // create new version
@@ -708,6 +721,10 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 	    private static final long serialVersionUID = 1L;
 
 	    public void actionPerformed(ActionEvent e) {
+
+		// save coords
+		saveCoords();
+
 		JTable table = (JTable) e.getSource();
 		int row = Integer.valueOf(e.getActionCommand());
 		String k = (String) table.getModel().getValueAt(row, COLIDX_Name2);

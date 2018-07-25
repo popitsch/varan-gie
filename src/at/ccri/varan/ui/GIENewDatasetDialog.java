@@ -404,7 +404,8 @@ public class GIENewDatasetDialog extends JDialog {
 
 		// create dataset
 		String category = textField0.getText();
-		String name = textField1.getText();
+		// encode dataset name!
+		String name = textField1.getText().replaceAll("[^a-zA-Z0-9\\.\\-]", "_");;
 		String description = textArea.getText();
 		File file = textField2.getText().trim().equals("") ? null : new File(textField2.getText());
 		List<String> annotations = new ArrayList<>();

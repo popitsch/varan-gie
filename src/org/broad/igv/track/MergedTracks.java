@@ -85,7 +85,7 @@ public class MergedTracks extends DataTrack implements ScalableTrack {
     private void initTrackList(Collection<DataTrack> inputTracks) {
 	this.memberTracks = new ArrayList<DataTrack>(inputTracks.size());
 	for (DataTrack inputTrack : inputTracks) {
-	    if ( inputTrack.equals(this))
+	    if (inputTrack.equals(this))
 		System.err.println("ERROR");
 	    if (inputTrack instanceof MergedTracks) {
 		this.memberTracks.addAll(((MergedTracks) inputTrack).getMemberTracks());
@@ -162,7 +162,6 @@ public class MergedTracks extends DataTrack implements ScalableTrack {
 	return height;
     }
 
-    
     @Override
     public void setHeight(int height, boolean force) {
 	super.setHeight(height, force);
@@ -171,7 +170,6 @@ public class MergedTracks extends DataTrack implements ScalableTrack {
 	}
     }
 
-    
     @Override
     public void setHeight(int height) {
 	super.setHeight(height);
@@ -446,8 +444,10 @@ public class MergedTracks extends DataTrack implements ScalableTrack {
     public Collection<WindowFunction> getAvailableWindowFunctions() {
 	// get union of member track windowing functions
 	Set<WindowFunction> union = new HashSet<>();
-	for (DataTrack t : memberTracks)
-	    union.addAll(t.getAvailableWindowFunctions());
+	if (union != null && memberTracks !=null)
+	    for (DataTrack t : memberTracks)
+		if (t != null && t.getAvailableWindowFunctions() != null)
+		    union.addAll(t.getAvailableWindowFunctions());
 	return union;
     }
 }

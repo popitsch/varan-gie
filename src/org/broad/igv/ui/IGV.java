@@ -322,6 +322,7 @@ public class IGV implements IGVEventObserver {
 		ToolTipManager.sharedInstance().setEnabled(false);
 		ToolTipManager.sharedInstance().setEnabled(true);
 		IGVPopupMenu.closeAll();
+		saveCoords();
 	    }
 
 	    @Override
@@ -330,6 +331,7 @@ public class IGV implements IGVEventObserver {
 		ToolTipManager.sharedInstance().setEnabled(false);
 		ToolTipManager.sharedInstance().setEnabled(true);
 		IGVPopupMenu.closeAll();
+		saveCoords();
 	    }
 
 	    @Override
@@ -350,7 +352,7 @@ public class IGV implements IGVEventObserver {
 		if (GIEDataDialog.getInstance() != null && GIEDataDialog.getInstance().getCoords() != null)
 		    GIE.getInstance().getWindowCoordinates().put("GIEDataDialog",
 			    GIEDataDialog.getInstance().getCoords());
-		GIE.getInstance().getWindowCoordinates().put("IGV", getCoords());
+		saveCoords();
 	    }
 
 	});
@@ -384,7 +386,6 @@ public class IGV implements IGVEventObserver {
 
 	dNdGlassPane = new GhostGlassPane();
 
-	mainFrame.pack();
 
 	// Certain components MUST be visible, so we set minimum size
 	// {@link MainPanel#addDataPanel}
@@ -404,6 +405,7 @@ public class IGV implements IGVEventObserver {
 	// mainFrame.setBounds(applicationBounds);
 
 	Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+
 	Integer[] coords = GIE.getInstance().getWindowCoordinates().get("IGV");
 	if (coords == null) {
 	    coords = new Integer[] { 0, 0, 1150, 800 };
@@ -414,7 +416,8 @@ public class IGV implements IGVEventObserver {
 	}
 	mainFrame.setLocation(coords[0], coords[1]);
 	mainFrame.setPreferredSize(new Dimension(coords[2], coords[3]));
-	mainFrame.setBounds(new Rectangle(coords[0], coords[1], coords[2], coords[3]));
+	// mainFrame.setBounds(new Rectangle(coords[0], coords[1], coords[2], coords[3]));
+	mainFrame.pack();
 
 	subscribeToEvents();
 
@@ -422,12 +425,28 @@ public class IGV implements IGVEventObserver {
 	// GIEMainDialog diag = GIEMainDialog.getInstance(getMainFrame());
     }
 
+    /**
+     * @return x, y, with, height of current window
+     */
     public Integer[] getCoords() {
 	if (!mainFrame.isShowing())
 	    return null;
-	return new Integer[] { Math.max(0, (int) mainFrame.getLocationOnScreen().getX()),
-		Math.max(0, (int) mainFrame.getLocationOnScreen().getY()), Math.max(100, mainFrame.getWidth()),
-		Math.max(100, mainFrame.getHeight()) };
+	return new Integer[] {Math.max(0, (int) mainFrame.getLocationOnScreen().getX()),
+		Math.max(0, (int) mainFrame.getLocationOnScreen().getY()), mainFrame.getWidth(),
+		mainFrame.getHeight() };
+    }
+
+    public void saveCoords() {
+	Integer[] coords = getCoords();
+	if (coords != null) {
+	    // check compatibility with actual screen size
+//	    coords[0] = Math.min(coords[0], GIE.SCREEN_WIDTH - coords[2]);
+//	    coords[1] = Math.min(coords[1], GIE.SCREEN_HEIGHT - coords[3]);
+	    // FIXME: bug with maximised windows on multi-screen environments; maximised window state not preserved
+	    mainFrame.setLocation(coords[0], coords[1]);
+	    mainFrame.setPreferredSize(new Dimension(coords[2], coords[3]));    
+	    GIE.getInstance().getWindowCoordinates().put("IGV", coords);
+	}
     }
 
     private void consumeEvents(Component glassPane) {
@@ -504,10 +523,10 @@ public class IGV implements IGVEventObserver {
     }
 
     public void updateROI(RegionOfInterest oldr, RegionOfInterest newr) {
-   	session.removeROI(oldr, false);
-   	session.addROI(newr, false, true);
-   	doRefresh();
-       }
+	session.removeROI(oldr, false);
+	session.addROI(newr, false, true);
+	doRefresh();
+    }
 
     public void removeROI(RegionOfInterest roi) {
 	session.removeROI(roi);

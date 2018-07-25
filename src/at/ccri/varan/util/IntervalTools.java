@@ -137,21 +137,18 @@ public class IntervalTools {
 	Collections.sort(reg);
 	Iterator<RegionOfInterest> it = reg.iterator();
 	ArrayList<RegionOfInterest> mainLayer = new ArrayList<RegionOfInterest>();
-	// add basic "layer"
+	// add first "layer"
 	ret.add(mainLayer);
 
 	while (it.hasNext()) {
 	    RegionOfInterest r = it.next();
 	    boolean added = false;
 	    for (List<RegionOfInterest> layer : ret) {
-		if (layer.size() == 0) {
+		if (layer.size() == 0 || !layer.get(layer.size() - 1).overlaps(r)) {
 		    layer.add(r);
 		    added = true;
-		} else {
-		    if (!layer.get(layer.size() - 1).overlaps(r)) {
-			layer.add(r);
-			added = true;
-		    }
+		    //System.out.println("Added to existing layer: " + r);
+		    break;
 		}
 	    }
 	    if (!added) {
@@ -159,6 +156,7 @@ public class IntervalTools {
 		ArrayList<RegionOfInterest> newLayer = new ArrayList<RegionOfInterest>();
 		newLayer.add(r);
 		ret.add(newLayer);
+		//System.out.println("Added to new layer " + r);
 	    }
 	}
 	return ret;
@@ -198,7 +196,7 @@ public class IntervalTools {
 	boolean done = false;
 	do {
 
-	    while (!c1.overlaps(c2) && c1.compareTo( c2 ) < 0) {
+	    while (!c1.overlaps(c2) && c1.compareTo(c2) < 0) {
 		if (i1.hasNext())
 		    c1 = i1.next();
 		else {
@@ -206,7 +204,7 @@ public class IntervalTools {
 		    break;
 		}
 	    }
-	    while (!c2.overlaps(c1) &&c2.compareTo( c1 ) < 0) {
+	    while (!c2.overlaps(c1) && c2.compareTo(c1) < 0) {
 		if (i2.hasNext())
 		    c2 = i2.next();
 		else {
@@ -214,8 +212,8 @@ public class IntervalTools {
 		    break;
 		}
 	    }
-//	    System.out.println(c1 + " vs " + c2 + " / " + i1.hasNext() + " / " + i2.hasNext() + " / "
-//		    + ( c1.compareTo( c2 ) ) + " / " + (c2.compareTo( c1 ) ) + " = " + c1.overlaps(c2));
+	    // System.out.println(c1 + " vs " + c2 + " / " + i1.hasNext() + " / " + i2.hasNext() + " / "
+	    // + ( c1.compareTo( c2 ) ) + " / " + (c2.compareTo( c1 ) ) + " = " + c1.overlaps(c2));
 	    if (c1.overlaps(c2)) {
 		// System.out.println(c1 + " overlaps " + c2);
 		overlaps = true;
@@ -225,17 +223,30 @@ public class IntervalTools {
 	} while ((i1.hasNext() || i2.hasNext()) && !done);
 	return overlaps;
     }
-    //
-    // public static void main(String[] args) {
-    //
-    // List<RegionOfInterest> r1 = new ArrayList<>();
-    // r1.add(new RegionOfInterest("1", 1, 100, "A"));
-    // r1.add(new RegionOfInterest("2", 1, 100, "B"));
-    // List<RegionOfInterest> r2 = new ArrayList<>();
-    // r2.add(new RegionOfInterest("2", 101, 150, "C"));
-    // r2.add(new RegionOfInterest("2", 200, 500, "C"));
-    // r2.add(new RegionOfInterest("2", 100, 200, "C"));
-    // System.out.println(isOverlappingROI(r2, r1));
-    // }
+
+//    //
+//    public static void main(String[] args) {
+//
+//	// List<RegionOfInterest> r1 = new ArrayList<>();
+//	// r1.add(new RegionOfInterest("1", 1, 100, "A"));
+//	// r1.add(new RegionOfInterest("2", 1, 100, "B"));
+//	// List<RegionOfInterest> r2 = new ArrayList<>();
+//	// r2.add(new RegionOfInterest("2", 101, 150, "C"));
+//	// r2.add(new RegionOfInterest("2", 200, 500, "C"));
+//	// r2.add(new RegionOfInterest("2", 100, 200, "C"));
+//	// System.out.println(isOverlappingROI(r2, r1));
+//
+//	List<RegionOfInterest> r1 = new ArrayList<>();
+//	r1.add(new RegionOfInterest("1", 1, 100, "A"));
+//	r1.add(new RegionOfInterest("2", 1, 100, "B"));
+//	r1.add(new RegionOfInterest("1", 1, 100, "C"));
+//	r1.add(new RegionOfInterest("3", 1, 100, "D"));
+//
+//	List<List<RegionOfInterest>> r = splitOverlapping(r1);
+//	for (int i = 0; i < r.size(); i++) {
+//	    System.out.println(i + " \t " + r.get(i));
+//	}
+//
+//    }
 
 }
