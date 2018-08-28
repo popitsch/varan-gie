@@ -9,6 +9,8 @@ By this, VARAN supports an integrative approach to viewing and annotating large 
 
 ![VARAN core GUI:](https://raw.githubusercontent.com/popitsch/varan-gie/master/gieweb/screenshot1.png "VARAN core GUI")
 
+VARAN is now published in [Bioinformatics](https://doi.org/10.1093/bioinformatics/bty723).
+
 ## Application Scenarios
 
 - Manual curation of genomic annotations, e.g., gene lists, CNV or SV calls, novel transcripts
