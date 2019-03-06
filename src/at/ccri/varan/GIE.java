@@ -1252,14 +1252,31 @@ public class GIE {
     }
 
     public List<GIEDataset> getDatasets(String category) {
+	return getDatasets(category, "");
+    }
+
+    public List<GIEDataset> getDatasets(String category, String filterStr) {
+	filterStr = filterStr.toLowerCase();
 	List<GIEDataset> ret = new ArrayList<>();
 	for (GIEDataset ds : getDatasets().values()) {
-	    if (ds.getCategory() == null || ds.getCategory().equals("") || ds.getCategory().equals(category)
-		    || category==null || category.equals(GIEMainDialog.FILTER_SHOW_ALL))
+	    boolean catMatch = ds.getCategory() == null || ds.getCategory().equals("")
+		    || ds.getCategory().equals(category) || category == null
+		    || category.equals(GIEMainDialog.FILTER_SHOW_ALL);
+	    boolean filMatch = filterStr == null || filterStr.trim().equals("") || filterStr.trim().equals("*")
+		    || ds.getName().toLowerCase().contains(filterStr) || ds.getCategory().toLowerCase().contains(filterStr);
+	    if (!filMatch) {
+		for (String vname : ds.getVersions().keySet()) {
+		    filMatch = vname.toLowerCase().contains(filterStr);
+		    if (filMatch)
+			break;
+		}
+	    }
+
+	    if (catMatch && filMatch)
 		ret.add(ds);
 	}
-	if (ret.size() == 0)
-	    ret.addAll(datasets.values());
+	// if (ret.size() == 0)
+	// ret.addAll(datasets.values());
 	return ret;
     }
 

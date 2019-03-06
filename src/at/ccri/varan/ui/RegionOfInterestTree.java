@@ -45,7 +45,9 @@ public class RegionOfInterestTree {
     }
 
     public void insert(RegionOfInterest r) {
-	getTree(r.getChr()).insert(new Interval<RegionOfInterest>(r.getStart(), r.getEnd(), r));
+	IntervalTree<RegionOfInterest> t = getTree(r.getChr());
+	t.insert(new Interval<RegionOfInterest>(r.getStart(), r.getEnd(), r));
+	trees.put(r.getChr(), t);
     }
     
     public List<Interval<RegionOfInterest>> queryOverlapping(RegionOfInterest r) {

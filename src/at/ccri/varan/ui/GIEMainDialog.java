@@ -38,6 +38,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -66,6 +68,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.JTextField;
 import javax.swing.JViewport;
 import javax.swing.ListSelectionModel;
 import javax.swing.ScrollPaneConstants;
@@ -77,6 +80,8 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumnModel;
+import javax.swing.table.TableModel;
+import javax.swing.table.TableRowSorter;
 
 import org.apache.log4j.Logger;
 import org.broad.igv.event.IGVEventObserver;
@@ -123,6 +128,11 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
     private JTable table;
 
     /**
+     * Table sorter.
+     */
+    private TableRowSorter<TableModel> tableSorter;
+
+    /**
      * add dataset version menu.
      */
     private JMenuItem addDsVersionM;
@@ -138,6 +148,11 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
     private JComboBox<String> catCombo = new JComboBox<>();
     /* internal. Flag whether combobox listener actions should be executed */
     private boolean testActionListenerActive;
+
+    /**
+     * String filter box
+     */
+    private JTextField catFilter = new JTextField(10);
 
     /**
      * Return the active GIEMainDialog. null if none
@@ -199,15 +214,21 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 		for (int i = model.getRowCount() - 1; i >= 0; i--) {
 		    model.removeRow(i);
 		}
+		TableRowSorter<TableModel> tableSorter = new TableRowSorter<TableModel>(model);
+		tableSorter.setRowFilter(null);
+		table.setRowSorter(tableSorter);
+
+		String strfilter = catFilter.getText();
+
 		int dx = 0;
 		String k = GIE.getInstance().getActiveDatasetName();
 		int activeDatasetIdx = 0;
-		for (GIEDataset d : gie.getDatasets(selected)) {
+		for (GIEDataset d : gie.getDatasets(selected, strfilter)) {
 		    int i = 0;
 		    for (GIEDatasetVersion v : d.getVersions().values()) {
 			List<String> entry = new ArrayList<String>();
-			entry.add(i == 0 ? d.getCategory() : "");
-			entry.add(i == 0 ? d.getName() : "");
+			entry.add(d.getCategory());
+			entry.add(d.getName());
 			entry.add(v.getVersionName());
 			entry.add(v.getActiveLayer().getLastModified());
 			entry.add("Load");
@@ -491,7 +512,7 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 
 	// cat selection panel
 	JPanel catPanel = new JPanel();
-	catPanel.setLayout(new GridLayout(3, 1));
+	catPanel.setLayout(new GridLayout(5, 1));
 	catPanel.add(new JLabel("Filter By Category"), Component.LEFT_ALIGNMENT);
 	DefaultComboBoxModel<String> comboModel = new DefaultComboBoxModel<>();
 	comboModel.addElement(FILTER_SHOW_ALL);
@@ -511,8 +532,39 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 	if (GIE.getInstance().getSelectedDatasetCategory() != null)
 	    catCombo.setSelectedItem(GIE.getInstance().getSelectedDatasetCategory());
 	catPanel.add(catCombo, Component.LEFT_ALIGNMENT);
-	catPanel.add(Box.createVerticalStrut(30));
 	testActionListenerActive = true;
+
+	catPanel.add(new JLabel("Filter By Substring"), Component.LEFT_ALIGNMENT);
+	catFilter.setToolTipText(
+		"<html><body>Filter table view by substring.</br> Press ENTER to apply filter.</body></html>");
+	// action when enter is pressed
+	catFilter.addActionListener(new ActionListener() {
+	    public void actionPerformed(ActionEvent e) {
+		if (testActionListenerActive) {
+		    reloadTable();
+		}
+	    }
+	});
+	// keystroke
+	catFilter.addKeyListener(new KeyListener() {
+
+	    @Override
+	    public void keyTyped(KeyEvent e) {
+	    }
+
+	    @Override
+	    public void keyPressed(KeyEvent e) {
+	    }
+
+	    @Override
+	    public void keyReleased(KeyEvent e) {
+		if (testActionListenerActive) {
+		    reloadTable();
+		}
+	    }
+	});
+	catPanel.add(catFilter, Component.LEFT_ALIGNMENT);
+	catPanel.add(Box.createVerticalStrut(5));
 
 	// dataset description panel
 	descr = new JEditorPane();
@@ -761,6 +813,15 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 		    descr.setText("");
 
 		    GIEDataDialog.destroyInstance();
+
+		    String selected = (String) catCombo.getSelectedItem();
+		    if (GIE.getInstance().getDatasets(selected).size() == 0) {
+			// update combobox
+			comboModel.removeAllElements();
+			comboModel.addElement(FILTER_SHOW_ALL);
+			for (String cat : GIE.getInstance().getCategories())
+			    comboModel.addElement(cat);
+		    }
 
 		    // ((DefaultTableModel) table.getModel()).removeRow(row);
 		} else {

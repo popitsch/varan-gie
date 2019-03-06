@@ -48,7 +48,7 @@ import java.io.IOException;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -98,15 +98,21 @@ import javax.swing.table.TableRowSorter;
 
 import org.apache.log4j.Logger;
 import org.broad.igv.Globals;
+import org.broad.igv.event.GenomeChangeEvent;
+import org.broad.igv.event.GenomeResetEvent;
 import org.broad.igv.event.IGVEventBus;
 import org.broad.igv.event.IGVEventObserver;
 import org.broad.igv.event.ViewChange;
+import org.broad.igv.feature.Chromosome;
+import org.broad.igv.feature.Cytoband;
 import org.broad.igv.feature.Range;
 import org.broad.igv.feature.RegionOfInterest;
+import org.broad.igv.feature.genome.Genome;
 import org.broad.igv.feature.genome.GenomeManager;
 import org.broad.igv.lists.GeneList;
 import org.broad.igv.ui.IGV;
 import org.broad.igv.ui.panel.IGVPopupMenu;
+import org.broad.igv.util.Interval;
 
 import at.ccri.varan.GIE;
 import at.ccri.varan.GIEDatasetVersion;
@@ -202,6 +208,12 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
      * For creating ROI links.
      */
     private RegionOfInterest linkSourceROI = null;
+
+    /**
+     * cytobands
+     */
+    private RegionOfInterestTree cytobands;
+    private boolean firstCytobandLoad = false;
 
     /**
      * Return the active GIEMainDialog. null if none
@@ -314,8 +326,8 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 			for (Object o : new Object[] {
 				defGenome ? CanonicalChromsomeComparator.getCanonicalMappingHuman(r.getChr())
 					: r.getChr(),
-				r.getStart(), r.getEnd(), getIntervalWidth(r.getEnd() - r.getStart()), "View", "Delete",
-				(r.getDescription() == null ? "-" : r.getDescription()),
+				r.getStart(), r.getEnd(), getIntervalWidth(r.getEnd() - r.getStart()), getChromBand(r),
+				"View", "Delete", (r.getDescription() == null ? "-" : r.getDescription()),
 				(r.getScore() == null ? 0d : r.getScore()),
 				(r.getStrand() == null ? "0" : r.getStrand()),
 				(r.getColor() == null ? "-" : r.getColor()),
@@ -404,6 +416,32 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	    return String.format(Locale.US, "%.1f %s", v / Math.pow(unit, exp), "Gb");
 	default:
 	    return String.format(Locale.US, "%.1f %s", v / Math.pow(unit, exp), "bp");
+	}
+    }
+
+    /**
+     * Return the ChromBand or null if none found.
+     * 
+     * @param i
+     * @return
+     */
+    private String getChromBand(RegionOfInterest reg) {
+	if (cytobands == null && !firstCytobandLoad) {
+	    System.out.println("Loading cytobands");
+	    loadCytobands();
+	    firstCytobandLoad = true;
+	}
+	if (cytobands == null)
+	    return "-";
+	List<Interval<RegionOfInterest>> hits = cytobands.queryOverlapping(reg);
+	if (hits.size() == 0)
+	    return "-";
+	if (hits.size() == 1)
+	    return hits.get(0).getValue().getDescription();
+	else {
+	    Collections.sort(hits);
+	    return hits.get(0).getValue().getDescription() + "-"
+		    + hits.get(hits.size() - 1).getValue().getDescription();
 	}
     }
 
@@ -635,26 +673,26 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	int[] selectedRows = getSelectedRows();
 	if (selectedRows.length > 0) {
 	    StringBuilder sb = new StringBuilder();
-//	    for (int rowIndex : selectedRows) {
-//		Enumeration<TableColumn> cols = table.getColumnModel().getColumns();
-//		while (cols.hasMoreElements()) {
-//		    TableColumn tc = cols.nextElement();
-//		    
-//		    switch (tc.getModelIndex()) {
-//		    case COLIDX_View:
-//		    case COLIDX_Del:
-//			break;
-//		    default:
-//			sb.append(table.getModel().getValueAt(rowIndex, tc.getModelIndex()) + "\t");
-//			break;
-//		    }
-//		}
-//		sb.append("\n");
-//	    }
-	    for ( int i : selectedRows ) {
-		sb.append(getSelectedRegion(i).toFullString()+"\n");
+	    for (int rowIndex : selectedRows) {
+		Enumeration<TableColumn> cols = table.getColumnModel().getColumns();
+		while (cols.hasMoreElements()) {
+		    TableColumn tc = cols.nextElement();
+
+		    switch (tc.getModelIndex()) {
+		    case COLIDX_View:
+		    case COLIDX_Del:
+			break;
+		    default:
+			sb.append(table.getModel().getValueAt(rowIndex, tc.getModelIndex()) + "\t");
+			break;
+		    }
+		}
+		sb.append("\n");
 	    }
-	    
+	    // for (int i : selectedRows) {
+	    // sb.append(getSelectedRegion(i).toFullString() + "\n");
+	    // }
+
 	    // List<RegionOfInterest> selectedRegions = getSelectedRegions(selectedRows);
 	    // StringBuilder sb = new StringBuilder();
 	    // for (RegionOfInterest r : selectedRegions)
@@ -675,13 +713,14 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
     final static int COLIDX_Start = 1;
     final static int COLIDX_End = 2;
     final static int COLIDX_Width = 3;
-    final static int COLIDX_View = 4;
-    final static int COLIDX_Del = 5;
-    final static int COLIDX_Name = 6;
-    final static int COLIDX_Score = 7;
-    final static int COLIDX_Strand = 8;
-    final static int COLIDX_COLOR = 9;
-    final static int COLIDX_LINKED = 10;
+    final static int COLIDX_ChrBand = 4;
+    final static int COLIDX_View = 5;
+    final static int COLIDX_Del = 6;
+    final static int COLIDX_Name = 7;
+    final static int COLIDX_Score = 8;
+    final static int COLIDX_Strand = 9;
+    final static int COLIDX_COLOR = 10;
+    final static int COLIDX_LINKED = 11;
 
     /**
      * @return x, y, with, height of current window
@@ -884,7 +923,6 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	linksM.add(showLinksM);
 	menuBar.add(linksM);
 
-
 	// ------------------------------- KARY ------------------------------------------------
 	JMenu karyM = new JMenu("Visualize");
 	karyM.setOpaque(false);
@@ -974,11 +1012,11 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	}
 
 	columnNames = new ArrayList<>();
-	for (String s : new String[] { "Chr", "Start", "End", "Width", "", "", "Name", "Score", "Strand", "Color",
-		"Linked" })
+	for (String s : new String[] { "Chr", "Start", "End", "Width", "ChrBand", "", "", "Name", "Score", "Strand",
+		"Color", "Linked" })
 	    columnNames.add(s);
 	List<Integer> columnWidths = new ArrayList<>();
-	for (int w : new int[] { 50, 70, 70, 50, 50, 25, 100, 50, 30, 50, 10 })
+	for (int w : new int[] { 50, 70, 70, 50, 50, 50, 25, 100, 50, 30, 50, 10 })
 	    columnWidths.add(w);
 	if (GIE.getInstance().getActiveDataset() != null) {
 	    for (String s : GIE.getInstance().getActiveDataset().getCurrentVersion().getActiveLayer()
@@ -1004,7 +1042,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	    }
 
 	    public boolean isCellEditable(int row, int col) {
-		return col != COLIDX_COLOR && col != COLIDX_LINKED;
+		return col != COLIDX_COLOR && col != COLIDX_LINKED && col != COLIDX_ChrBand;
 	    }
 
 	    @Override
@@ -1052,6 +1090,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 			mod.setEnd(r.getStart() + Math.abs(w));
 			IGV.getInstance().updateROI(r, mod);
 			super.setValueAt(mod.getEnd(), row, COLIDX_End);
+			super.setValueAt(getChromBand(mod), row, COLIDX_ChrBand);
 			super.setValueAt(getIntervalWidth(mod.getEnd() - mod.getStart()), row, COLIDX_Width);
 		    } catch (ParseException ex) {
 			JOptionPane.showMessageDialog(IGV.getMainFrame(), "Parsing Error " + ex.getMessage(), "Error",
@@ -1063,6 +1102,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 		    mod.setStart(CanonicalChromsomeComparator.parseCoordinate(r.getChr(), r.getStart(), v));
 		    IGV.getInstance().updateROI(r, mod);
 		    super.setValueAt(getIntervalWidth(mod.getEnd() - mod.getStart()), row, COLIDX_Width);
+		    super.setValueAt(getChromBand(mod), row, COLIDX_ChrBand);
 		    super.setValueAt(v, row, col);
 		    break;
 		case COLIDX_End:
@@ -1070,6 +1110,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 		    mod.setEnd(CanonicalChromsomeComparator.parseCoordinate(r.getChr(), r.getEnd(), v));
 		    IGV.getInstance().updateROI(r, mod);
 		    super.setValueAt(getIntervalWidth(mod.getEnd() - mod.getStart()), row, COLIDX_Width);
+		    super.setValueAt(getChromBand(mod), row, COLIDX_ChrBand);
 		    super.setValueAt(v, row, col);
 		    break;
 		case COLIDX_Name:
@@ -1142,6 +1183,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	this.tableSorter.setComparator(COLIDX_End, new IntComparator());
 	this.tableSorter.setComparator(COLIDX_Score, new DoubleComparator());
 	this.tableSorter.setComparator(COLIDX_Width, new WidthComparator());
+	this.tableSorter.setComparator(COLIDX_ChrBand, new ChrComparator());
 	this.table.setDefaultRenderer(Object.class, new MyTableCellRenderer());
 
 	table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
@@ -1224,6 +1266,9 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	IGV.getInstance().getSession().getRegionsOfInterestObservable().addObserver(this);
 	// register for view changes
 	IGVEventBus.getInstance().subscribe(ViewChange.class, this);
+	// register for genome changes
+	IGVEventBus.getInstance().subscribe(GenomeChangeEvent.class, this);
+	IGVEventBus.getInstance().subscribe(GenomeResetEvent.class, this);
     }
 
     private String abbrv(String txt, int max) {
@@ -1235,12 +1280,34 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	return txt.substring(0, max) + "...";
     }
 
+    private void loadCytobands() {
+	cytobands = new RegionOfInterestTree();
+	Genome g = GenomeManager.getInstance().getCurrentGenome();
+	if (g != null) {
+	    List<RegionOfInterest> rois = new ArrayList<>();
+	    for (String c : g.getAllChromosomeNames()) {
+		Chromosome chr = g.getChromosome(c);
+		List<Cytoband> bands = chr.getCytobands();
+		if (bands != null) {
+		    for (Cytoband cyto : bands) {
+			RegionOfInterest r = new RegionOfInterest(cyto.getChr(), cyto.getStart(), cyto.getEnd(),
+				cyto.getLongName());
+			rois.add(r);
+		    }
+		}
+	    }
+	    cytobands = new RegionOfInterestTree(rois);
+	}
+    }
+
     @Override
     public void receiveEvent(Object event) {
 	if (event instanceof ViewChange) {
 	    GIERowFilter filter = GIE.getInstance().getRowFilter();
 	    filter.setViewChanged();
 	    filterUpdate();
+	} else if (event instanceof GenomeChangeEvent || event instanceof GenomeResetEvent) {
+	    loadCytobands();
 	}
     }
 
