@@ -289,13 +289,15 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
     }
 
     /**
-     * @return x, y, with, height of current window
+     * @return x,y, width, height of current window
      */
     public Integer[] getCoords() {
 	if (!isShowing())
 	    return null;
-	return new Integer[] { Math.max(0, (int) getLocationOnScreen().getX()),
-		Math.max(0, (int) getLocationOnScreen().getY()), getWidth(), getHeight() };
+	return new Integer[] { (int) getLocationOnScreen().getX(), (int) getLocationOnScreen().getY(), getWidth(),
+		getHeight() };
+	// return new Integer[] { Math.max(0, (int) getLocationOnScreen().getX()),
+	// Math.max(0, (int) getLocationOnScreen().getY()), getWidth(), getHeight() };
     }
 
     public void saveCoords() {
@@ -337,6 +339,7 @@ public class GIEMainDialog extends JDialog implements Observer, IGVEventObserver
 	    coords[1] = Math.min(coords[1], GIE.SCREEN_HEIGHT - coords[3]);
 	    setLocation(coords[0], coords[1]);
 	    setPreferredSize(new Dimension(coords[2], coords[3]));
+
 	}
 	pack();
 	// +++++++++++++++++++++++++++++++++++++++++++++++

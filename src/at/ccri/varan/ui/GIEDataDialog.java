@@ -243,7 +243,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
     public static boolean destroyInstance() {
 	if (instance == null)
 	    return false;
-	GIE.getInstance().getWindowCoordinates().put("GIEDataDialog", instance.getCoords());
+	instance.saveCoords();
 	instance.dispose();
 	instance = null;
 	return true;
@@ -331,8 +331,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 				(r.getScore() == null ? 0d : r.getScore()),
 				(r.getStrand() == null ? "0" : r.getStrand()),
 				(r.getColor() == null ? "-" : r.getColor()),
-				(activeLayer.getLinkedROIs().contains(r) ? "1"
-					: "0") })
+				(activeLayer.getLinkedROIs().contains(r) ? "1" : "0") })
 			    d.add(o);
 
 			for (String s : activeLayer.getAnnotations()) {
@@ -723,13 +722,27 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
     final static int COLIDX_LINKED = 11;
 
     /**
-     * @return x, y, with, height of current window
+     * @return x,y, width, height of current window
      */
     public Integer[] getCoords() {
 	if (!isShowing())
 	    return null;
-	return new Integer[] { Math.max(0, (int) getLocationOnScreen().getX()),
-		Math.max(0, (int) getLocationOnScreen().getY()), getWidth(), getHeight() };
+	return new Integer[] { (int) getLocationOnScreen().getX(), (int) getLocationOnScreen().getY(), getWidth(),
+		getHeight() };
+	// return new Integer[] { Math.max(0, (int) getLocationOnScreen().getX()),
+	// Math.max(0, (int) getLocationOnScreen().getY()), getWidth(), getHeight() };
+    }
+
+    public void saveCoords() {
+	Integer[] coords = getCoords();
+	if (coords != null) {
+	    // check compatibility with actual screen size
+	    coords[0] = Math.min(coords[0], GIE.SCREEN_WIDTH - coords[2]);
+	    coords[1] = Math.min(coords[1], GIE.SCREEN_HEIGHT - coords[3]);
+	    setLocation(coords[0], coords[1]);
+	    setPreferredSize(new Dimension(coords[2], coords[3]));
+	    GIE.getInstance().getWindowCoordinates().put("GIEDataDialog", coords);
+	}
     }
 
     /**
@@ -748,14 +761,12 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	addWindowListener(new WindowAdapter() {
 	    @Override
 	    public void windowClosing(WindowEvent e) {
-		Integer[] coords = getCoords();
-		if (coords != null)
-		    GIE.getInstance().getWindowCoordinates().put("GIEDataDialog", getCoords());
+		saveCoords();
 	    }
 	});
 	Integer[] coords = GIE.getInstance().getWindowCoordinates().get("GIEDataDialog");
 	if (coords == null) {
-	    setPreferredSize(new Dimension(640, 500));
+	    setPreferredSize(new Dimension(640, 300));
 	    setLocationRelativeTo(IGV.getMainFrame());
 	} else {
 	    // check compatibility with actual screen size
@@ -763,6 +774,7 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 	    coords[1] = Math.min(coords[1], GIE.SCREEN_HEIGHT - coords[3]);
 	    setLocation(coords[0], coords[1]);
 	    setPreferredSize(new Dimension(coords[2], coords[3]));
+
 	}
 	// +++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -1658,7 +1670,8 @@ public class GIEDataDialog extends JDialog implements Observer, IGVEventObserver
 			    if (selectedRows.length > 0) {
 				List<RegionOfInterest> selectedRegions = getSelectedRegions();
 				Color prev = selectedRegions.size() == 1
-					? RegionOfInterest.getAWTColor(selectedRegions.get(0).getColor()) : null;
+					? RegionOfInterest.getAWTColor(selectedRegions.get(0).getColor())
+					: null;
 				colorChooser.setColor(prev);
 				JDialog dialog = JColorChooser.createDialog(null,
 					"Choose color (close dialog to clear selection)", true, colorChooser,

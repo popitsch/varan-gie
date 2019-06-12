@@ -71,12 +71,15 @@ public class DirectoryManager {
     public static synchronized File getUserDirectory() {
         if (USER_DIRECTORY == null) {
             log.info("Fetching user directory... ");
+            System.out.println("home: "+ FileSystemView.getFileSystemView().getDefaultDirectory());
             USER_DIRECTORY = FileSystemView.getFileSystemView().getDefaultDirectory();
+            System.out.println("got: "+ USER_DIRECTORY);
             //Mostly for testing, in some environments USER_DIRECTORY can be null
             if (USER_DIRECTORY == null) {
                 USER_DIRECTORY = getUserHome();
             }
         }
+        System.out.println("home: "+ USER_DIRECTORY);
         return USER_DIRECTORY;
     }
 

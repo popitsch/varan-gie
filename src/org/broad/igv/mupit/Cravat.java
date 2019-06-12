@@ -1,33 +1,30 @@
 package org.broad.igv.mupit;
 
-import com.google.gson.Gson;
+import java.io.IOException;
+import java.net.URL;
+import java.util.Map;
+
+import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
+
+import org.broad.igv.util.BrowserLauncher;
+import org.broad.igv.util.HttpUtils;
+
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+
 import javafx.application.Platform;
 import javafx.embed.swing.JFXPanel;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Hyperlink;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Text;
-import org.broad.igv.prefs.IGVPreferences;
-import org.broad.igv.prefs.PreferenceEditorFX;
-import org.broad.igv.prefs.PreferencesManager;
-import org.broad.igv.util.BrowserLauncher;
-import org.broad.igv.util.HttpUtils;
-
-import javax.swing.*;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Created by jrobinso on 2/17/17.

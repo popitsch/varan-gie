@@ -312,6 +312,7 @@ public class IGV implements IGVEventObserver {
 
 	final IGVPreferences preferences = PreferencesManager.getPreferences();
 
+	
 	genomeManager = GenomeManager.getInstance();
 	mainFrame = frame;
 	mainFrame.addWindowListener(new WindowAdapter() {
@@ -345,13 +346,12 @@ public class IGV implements IGVEventObserver {
 
 	    @Override
 	    public void windowClosing(WindowEvent e) {
+		System.err.println("Saving coords");
 		// save GIE coordinates
 		if (GIEMainDialog.getInstance() != null && GIEMainDialog.getInstance().getCoords() != null)
-		    GIE.getInstance().getWindowCoordinates().put("GIEMainDialog",
-			    GIEMainDialog.getInstance().getCoords());
+		    GIEMainDialog.getInstance().saveCoords();
 		if (GIEDataDialog.getInstance() != null && GIEDataDialog.getInstance().getCoords() != null)
-		    GIE.getInstance().getWindowCoordinates().put("GIEDataDialog",
-			    GIEDataDialog.getInstance().getCoords());
+		    GIEDataDialog.getInstance().saveCoords();
 		saveCoords();
 	    }
 
@@ -414,9 +414,14 @@ public class IGV implements IGVEventObserver {
 	    coords[0] = Math.min(coords[0], GIE.SCREEN_WIDTH - coords[2]);
 	    coords[1] = Math.min(coords[1], GIE.SCREEN_HEIGHT - coords[3]);
 	}
+	    
 	mainFrame.setLocation(coords[0], coords[1]);
 	mainFrame.setPreferredSize(new Dimension(coords[2], coords[3]));
-	// mainFrame.setBounds(new Rectangle(coords[0], coords[1], coords[2], coords[3]));
+	mainFrame.setSize(new Dimension(coords[2], coords[3]));
+	//mainFrame.setMaximumSize(new Dimension(coords[2], coords[3]));
+	//mainFrame.setMinimumSize(new Dimension(coords[2], coords[3]));
+	
+	//mainFrame.setBounds(new Rectangle(coords[0], coords[1], coords[2], coords[3]));
 	mainFrame.pack();
 
 	subscribeToEvents();
@@ -426,14 +431,15 @@ public class IGV implements IGVEventObserver {
     }
 
     /**
-     * @return x, y, with, height of current window
+     * @return x,y, width, height of current window
      */
     public Integer[] getCoords() {
 	if (!mainFrame.isShowing())
 	    return null;
-	return new Integer[] {Math.max(0, (int) mainFrame.getLocationOnScreen().getX()),
-		Math.max(0, (int) mainFrame.getLocationOnScreen().getY()), mainFrame.getWidth(),
+	return new Integer[] { (int) mainFrame.getLocationOnScreen().getX(), (int) mainFrame.getLocationOnScreen().getY(), mainFrame.getWidth(),
 		mainFrame.getHeight() };
+	// return new Integer[] { Math.max(0, (int) getLocationOnScreen().getX()),
+	// Math.max(0, (int) getLocationOnScreen().getY()), getWidth(), getHeight() };
     }
 
     public void saveCoords() {

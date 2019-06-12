@@ -81,8 +81,8 @@ public class GIEGenomeViewDialog extends JDialog {
     private static final long serialVersionUID = 1L;
 
     private static final int CYTOBAND_HEIGHT = 6;
-    private static final  int CYTOBAND_Y_OFFSET = 3;
-    private static final  int INT_HEIGHT = 6;
+    private static final int CYTOBAND_Y_OFFSET = 3;
+    private static final int INT_HEIGHT = 6;
     private static final int INTER_CHR_SPACING = 10;
 
     private static Map<Integer, Color> stainColors = new HashMap<Integer, Color>();
@@ -101,8 +101,10 @@ public class GIEGenomeViewDialog extends JDialog {
     public Integer[] getCoords() {
 	if (!isShowing())
 	    return null;
-	return new Integer[] { Math.max(0, (int) getLocationOnScreen().getX()),
-		Math.max(0, (int) getLocationOnScreen().getY()), getWidth(), getHeight() };
+	return new Integer[] { (int) getLocationOnScreen().getX(), (int) getLocationOnScreen().getY(), getWidth(),
+		getHeight() };
+	// return new Integer[] { Math.max(0, (int) getLocationOnScreen().getX()),
+	// Math.max(0, (int) getLocationOnScreen().getY()), getWidth(), getHeight() };
     }
 
     /**
@@ -200,12 +202,12 @@ public class GIEGenomeViewDialog extends JDialog {
 
 		    // chr name
 		    g.setColor(Color.black);
-		    g.drawString(chrName, 1, off+1);
+		    g.drawString(chrName, 1, off + 1);
 		    // draw chrom
 		    Rectangle cytoRect = new Rectangle(leftoff, off, pxWidth, CYTOBAND_HEIGHT);
 		    drawBands(currentCytobands, g, cytoRect, chromosome.getLength());
 
-		    off += CYTOBAND_HEIGHT+2;
+		    off += CYTOBAND_HEIGHT + 2;
 
 		    // draw intervals
 		    Iterator<String> lns = ds.getLayers().keySet().iterator();
@@ -216,12 +218,11 @@ public class GIEGenomeViewDialog extends JDialog {
 			drawIntervals(chrName, layer.getRegions(), g, dataRect, chromosome.getLength());
 			off += INT_HEIGHT + 1;
 		    }
-		    off += INTER_CHR_SPACING ;
+		    off += INTER_CHR_SPACING;
 		}
 
 	    }
 	}
-
 
 	JPanel canvas = new MyPanel();
 	// TODO calculate canvas height from #chro+#layers
@@ -258,14 +259,15 @@ public class GIEGenomeViewDialog extends JDialog {
 	legendFrame.putClientProperty("JInternalFrame.isPalette", Boolean.TRUE);
 	legendFrame.getRootPane().setWindowDecorationStyle(JRootPane.NONE);
 	legendFrame.setJMenuBar(null);
-	legendFrame.setBounds(800, 800, 200, 100+ds.getLayers().size()*15);
+	legendFrame.setBounds(800, 800, 200, 100 + ds.getLayers().size() * 15);
 	legendFrame.setClosable(false);
-//	legendFrame.setBorder(BorderFactory.createMatteBorder(0, 1, 3, 3, Color.DARK_GRAY));
+	// legendFrame.setBorder(BorderFactory.createMatteBorder(0, 1, 3, 3, Color.DARK_GRAY));
 	legendFrame.setTitle("Legend");
 	try {
 	    legendFrame.setSelected(true);
 	    legendFrame.setFrameIcon(null);
-	} catch (java.beans.PropertyVetoException e2) {}
+	} catch (java.beans.PropertyVetoException e2) {
+	}
 
 	// remove title bar
 	// ((javax.swing.plaf.basic.BasicInternalFrameUI)legendFrame.getUI()).setNorthPane(null);
@@ -287,8 +289,6 @@ public class GIEGenomeViewDialog extends JDialog {
 	legendPanel.setBackground(Color.white);
 	layeredPane.add(legendFrame, JLayeredPane.DRAG_LAYER);
 	legendFrame.setVisible(true);
-
-
 
 	pack();
 	setModal(false);
@@ -402,8 +402,8 @@ public class GIEGenomeViewDialog extends JDialog {
 		int y = (int) graphicRect.getY() + CYTOBAND_Y_OFFSET;
 		int height = (int) graphicRect.getHeight();
 		Color col = roi.getAWTColor();
-		if ( col == null || col.equals(Color.WHITE)) // cannot draw white on white
-		    col=Color.GRAY;
+		if (col == null || col.equals(Color.WHITE)) // cannot draw white on white
+		    col = Color.GRAY;
 		if (i % 2 == 0)
 		    col = col.darker();
 		g2D.setColor(col);

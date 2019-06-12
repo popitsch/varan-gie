@@ -132,8 +132,10 @@ public class GIELinksDialog extends JDialog {
     public Integer[] getCoords() {
 	if (!isShowing())
 	    return null;
-	return new Integer[] { Math.max(0, (int) getLocationOnScreen().getX()),
-		Math.max(0, (int) getLocationOnScreen().getY()), getWidth(), getHeight() };
+	return new Integer[] { (int) getLocationOnScreen().getX(), (int) getLocationOnScreen().getY(), getWidth(),
+		getHeight() };
+	// return new Integer[] { Math.max(0, (int) getLocationOnScreen().getX()),
+	// Math.max(0, (int) getLocationOnScreen().getY()), getWidth(), getHeight() };
     }
 
     /**

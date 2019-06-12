@@ -100,9 +100,9 @@ public class GIE {
     /**
      * GIE Version
      */
-    public static final String VERSION = "0.3.1";
+    public static final String VERSION = "0.3.2";
 
-    public static final String AUTHORS = "niko.popitsch@ccri.at";
+    public static final String AUTHORS = "niko.popitsch@imba.oeaw.ac.at";
 
     /**
      * The GIE application directory
@@ -229,6 +229,11 @@ public class GIE {
     public static int SCREEN_WIDTH = 0;
     public static int SCREEN_HEIGHT = 0;
 
+    static {
+	// fix to trap CMD+Q on MacOS
+	System.setProperty("apple.eawt.quitStrategy", "CLOSE_ALL_WINDOWS");
+    }
+    
     /**
      * Contructor
      */

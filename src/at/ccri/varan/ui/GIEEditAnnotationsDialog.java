@@ -94,8 +94,10 @@ public class GIEEditAnnotationsDialog extends JDialog implements Observer, IGVEv
     public Integer[] getCoords() {
 	if (!isShowing())
 	    return null;
-	return new Integer[] { Math.max(0, (int) getLocationOnScreen().getX()),  Math.max(0, (int) getLocationOnScreen().getY()), getWidth(),
+	return new Integer[] { (int) getLocationOnScreen().getX(), (int) getLocationOnScreen().getY(), getWidth(),
 		getHeight() };
+	// return new Integer[] { Math.max(0, (int) getLocationOnScreen().getX()),
+	// Math.max(0, (int) getLocationOnScreen().getY()), getWidth(), getHeight() };
     }
 
     /**
@@ -248,9 +250,8 @@ public class GIEEditAnnotationsDialog extends JDialog implements Observer, IGVEv
 	list.setTransferHandler(new ListTransferHandler());
 	JScrollPane sp = new JScrollPane(list);
 	sp.setBorder(new TitledBorder(""));
-	formPanel.add(new JLabel(
-		"<html><body>Additional annotations. Reorder with D'n'd.</br>"
-			+ "Please note that deleting or reordering attributes in this list might result in the loss of the respective annotation values!</body></html>",
+	formPanel.add(new JLabel("<html><body>Additional annotations. Reorder with D'n'd.</br>"
+		+ "Please note that deleting or reordering attributes in this list might result in the loss of the respective annotation values!</body></html>",
 		JLabel.LEADING));
 	formPanel.add(sp);
 
