@@ -17,9 +17,11 @@ It extends IGV by adding **functionality to create, edit and annotate sets of ge
 By this, VARAN supports an integrative approach to viewing and annotating large genomic data sets. 
 
 Application scenarios for VARAN include
+
 * Manual curation of genomic annotations, e.g., gene lists, CNV or SV calls, novel transcripts
 * Merging and curation of multiple BED files
 * De-novo authoring of *multi-layer* interval sets 
+
 and many more.
 
 .. _IGV: http://software.broadinstitute.org/software/igv/
@@ -35,10 +37,12 @@ Prior installation of IGV is not required as the VARAN-GIE release ZIP will cont
 When first started, VARAN-GIE will create a subdirectory "gie" in your IGV home directory (usually ~/igv) where it 
 will store all GIE-related files. If IGV+VARAN-GIE is slow or runs out of memory, consider updating the -Xmx parameter in the startup shell script to reserve more memory for VARAN-GIE. Please note that VARAN-GIE is currently not automatically updated when IGV is updated as it was branched from the main IGV development tree._
 
+.. _release ZIP file: 
+
 User Guide
 ==========
 
-* watch our introductory `viedo`_ on youtube 
+* watch our introductory `video`_ on youtube 
 * a detailed user guide that also describes VARAN's data model is provided in our `wiki`_  
 
 
@@ -50,6 +54,8 @@ Citation
 ========
 
 Please cite our paper:
-Niko Popitsch, VARAN-GIE: curation of genomic interval sets, Bioinformatics, Volume 35, Issue 5, 01 March 2019, 
-Pages 868–870, https://doi.org/10.1093/bioinformatics/bty723
+
+    Niko Popitsch, VARAN-GIE: curation of genomic interval sets, 
+    Bioinformatics, Volume 35, Issue 5, 01 March 2019, 
+    Pages 868–870, https://doi.org/10.1093/bioinformatics/bty723
  
